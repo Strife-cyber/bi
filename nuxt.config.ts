@@ -35,5 +35,10 @@ export default defineNuxtConfig({
       firebaseAppId: process.env.FIREBASE_APP_ID,
       firebaseMeasurementId: process.env.FIREBASE_MEASUREMENT_ID,
     }
-  }
+  },
+
+  plugins: [
+    '~/plugins/firebase.client.ts',
+    '~/plugins/firebase.auth.ts'
+  ]
 })
