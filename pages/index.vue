@@ -26,12 +26,17 @@
             </a>
           </div>
           
-          <div class="hidden md:flex items-center space-x-4 animate-fade-in-right">
+          <div v-if="user==null" class="hidden md:flex items-center space-x-4 animate-fade-in-right">
             <router-link to="/auth/register" class="btn-ghost hover-scale cursor-pointer">
               S'inscrire
             </router-link>
             <router-link to="/auth/login" class="btn-primary hover-glow cursor-pointer">
               Connexion
+            </router-link>
+          </div>
+          <div v-else class="hidden md:flex items-center space-x-4 animate-fade-in-right">
+            <router-link to="/dashboard"  class="btn-primary hover-scale cursor-pointer">
+              Dashboard
             </router-link>
           </div>
         </div>
@@ -560,4 +565,7 @@ onMounted(() => {
     })
   })
 })
+
+const { getCurrentUser } = useAuth();
+let user = computed(() => getCurrentUser());
 </script>

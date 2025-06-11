@@ -14,36 +14,6 @@
       <div class="card-glass rounded-2xl p-8 shadow-2xl animate-scale-in hover-lift">
         <!-- Email Register Form -->
         <form @submit.prevent="registerWithEmail" class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="animate-fade-in-up" style="animation-delay: 0.1s">
-              <label for="firstName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Prénom
-              </label>
-              <input
-                id="firstName"
-                v-model="form.firstName"
-                type="text"
-                required
-                class="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300 hover:border-emerald-300 dark:hover:border-emerald-600"
-                placeholder="Jean"
-              />
-            </div>
-
-            <div class="animate-fade-in-up" style="animation-delay: 0.2s">
-              <label for="lastName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Nom
-              </label>
-              <input
-                id="lastName"
-                v-model="form.lastName"
-                type="text"
-                required
-                class="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300 hover:border-emerald-300 dark:hover:border-emerald-600"
-                placeholder="Dupont"
-              />
-            </div>
-          </div>
-
           <div class="animate-fade-in-up" style="animation-delay: 0.3s">
             <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Adresse email
@@ -76,8 +46,7 @@
                 @click="showPassword = !showPassword"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-emerald-600 transition-colors"
               >
-                <span v-if="showPassword" class="text-xl">👁️</span>
-                <span v-else class="text-xl">🙈</span>
+                <UIcon :name="showPassword ? 'i-heroicons-eye' : 'i-heroicons-eye-slash'" class="text-xl text-gray-600" />
               </button>
             </div>
             <!-- Password Strength Indicator -->
@@ -107,8 +76,7 @@
               @click="showConfirmPassword = !showConfirmPassword"
               class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-emerald-600 transition-colors"
             >
-              <span v-if="showConfirmPassword" class="text-xl">👁️</span>
-              <span v-else class="text-xl">🙈</span>
+              <UIcon :name="showConfirmPassword ? 'i-heroicons-eye' : 'i-heroicons-eye-slash'" class="text-xl text-gray-600" />
             </button>
             <p v-if="form.confirmPassword && form.password !== form.confirmPassword" class="text-red-500 text-xs mt-1">
               Les mots de passe ne correspondent pas
@@ -134,7 +102,7 @@
 
           <button
             type="submit"
-            :disabled="isLoading || !isFormValid"
+            :disabled="isLoading"
             class="w-full btn-primary hover-lift hover-glow animate-fade-in-up disabled:opacity-50 disabled:cursor-not-allowed"
             style="animation-delay: 0.8s"
           >
@@ -201,8 +169,6 @@ import { ref, reactive, computed } from 'vue'
 
 // Form state
 const form = reactive({
-  firstName: '',
-  lastName: '',
   email: '',
   password: '',
   confirmPassword: '',
@@ -245,25 +211,15 @@ const getPasswordStrengthColor = (index) => {
   return 'bg-gray-200 dark:bg-gray-700'
 }
 
-const isFormValid = computed(() => {
-  return form.firstName && 
-         form.lastName && 
-         form.email && 
-         form.password && 
-         form.confirmPassword && 
-         form.password === form.confirmPassword && 
-         form.acceptTerms &&
-         passwordStrength.value >= 2
-})
+const { signInWithEmail, signInWithGitHub, signInWithGoogle, signUpWithEmail } = useAuth();
 
 // Authentication methods
 const registerWithGoogle = async () => {
   isLoading.value = true
   try {
-    // Simulate Google OAuth
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    showMessage('Inscription Google réussie !', 'success')
-    // Redirect to dashboard
+    signInWithGoogle();
+    showMessage('Inscription Google réussie !', 'success');
+    navigateTo('/dashboard');
   } catch (error) {
     showMessage('Erreur lors de l\'inscription Google', 'error')
   } finally {
@@ -274,10 +230,9 @@ const registerWithGoogle = async () => {
 const registerWithGitHub = async () => {
   isLoading.value = true
   try {
-    // Simulate GitHub OAuth
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    showMessage('Inscription GitHub réussie !', 'success')
-    // Redirect to dashboard
+    signInWithGitHub();
+    showMessage('Inscription GitHub réussie !', 'success');
+    navigateTo('/dashboard');
   } catch (error) {
     showMessage('Erreur lors de l\'inscription GitHub', 'error')
   } finally {
@@ -286,17 +241,21 @@ const registerWithGitHub = async () => {
 }
 
 const registerWithEmail = async () => {
-  if (!isFormValid.value) {
+  if (  
+    form.email && form.password 
+    && form.confirmPassword && form.password === form.confirmPassword 
+    && form.acceptTerms && passwordStrength.value >= 2
+  ) {
     showMessage('Veuillez remplir correctement tous les champs', 'error')
     return
   }
 
   isLoading.value = true
   try {
-    // Simulate email registration
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    signUpWithEmail(form.email, form.password);
+    signInWithEmail(form.email, form.password);
     showMessage('Compte créé avec succès ! Vérifiez votre email.', 'success')
-    // Redirect to login or dashboard
+    navigateTo('/dashboard');
   } catch (error) {
     showMessage('Erreur lors de la création du compte', 'error')
   } finally {

@@ -46,8 +46,7 @@
                 @click="showPassword = !showPassword"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-emerald-600 transition-colors"
               >
-                <span v-if="showPassword" class="text-xl">👁️</span>
-                <span v-else class="text-xl">🙈</span>
+                <UIcon :name="showPassword ? 'i-heroicons-eye' : 'i-heroicons-eye-slash'" class="text-xl text-gray-600" />
               </button>
             </div>
           </div>
@@ -150,7 +149,7 @@ const loginWithGoogle = async () => {
     // Simulate Google OAuth
     await new Promise(resolve => setTimeout(resolve, 1500))
     showMessage('Connexion Google réussie !', 'success')
-    // Redirect to dashboard
+    navigateTo('/dashboard');
   } catch (error) {
     showMessage('Erreur lors de la connexion Google', 'error')
   } finally {
@@ -164,7 +163,7 @@ const loginWithGitHub = async () => {
     // Simulate GitHub OAuth
     await new Promise(resolve => setTimeout(resolve, 1500))
     showMessage('Connexion GitHub réussie !', 'success')
-    // Redirect to dashboard
+    navigateTo('/dashboard');
   } catch (error) {
     showMessage('Erreur lors de la connexion GitHub', 'error')
   } finally {
@@ -179,7 +178,7 @@ const loginWithEmail = async () => {
     await new Promise(resolve => setTimeout(resolve, 2000))
     if (form.email && form.password) {
       showMessage('Connexion réussie !', 'success')
-      // Redirect to dashboard
+      navigateTo('/dashboard');
     } else {
       showMessage('Veuillez remplir tous les champs', 'error')
     }

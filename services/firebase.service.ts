@@ -1,3 +1,4 @@
+import { getDatabase } from "firebase/database";
 import { getAnalytics } from "firebase/analytics";
 import { GithubAuthProvider, GoogleAuthProvider, getAuth } from "firebase/auth";
 
@@ -14,6 +15,12 @@ export function useFirebaseAnalytics() {
     return getAnalytics($firebase.app);
   }
   return undefined;
+}
+
+export function useFirebaseDatabase() {
+  const nuxtApp = useNuxtApp();
+  if (!nuxtApp.$firebase?.app) throw new Error("Firebase not initialized");
+  return getDatabase(nuxtApp.$firebase.app);
 }
 
 export const githubProvider = new GithubAuthProvider();
