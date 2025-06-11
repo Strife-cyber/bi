@@ -1,0 +1,188 @@
+export default defineAppConfig({
+  ui: {
+    slideover: {
+      slots: {
+        overlay: 'fixed inset-0 bg-elevated/75 bg-gray-300/70 dark:bg-gray-800/90',
+        content: 'fixed bg-gray-100 dark:bg-gray-900 divide-y divide-default sm:ring ring-default sm:shadow-lg flex flex-col focus:outline-none',
+        header: 'flex items-center gap-1.5 p-4 mt-20 sm:px-6 dark:text-gray-200 text-black min-h-16',
+        wrapper: '',
+        body: 'flex-1 overflow-y-auto dark:text-gray-200 text-black p-4 sm:p-6',
+        footer: 'flex items-center gap-1.5 p-4 sm:px-6',
+        title: 'text-highlighted font-semibold',
+        description: 'mt-1 text-muted text-sm',
+        close: 'absolute top-26 end-12 text-lg cursor-pointer bg-green-500 p-1'
+      },
+      variants: {
+        side: {
+          top: {
+            content: 'inset-x-0 top-0 max-h-full'
+          },
+          right: {
+            content: 'right-0 inset-y-0 w-full max-w-md'
+          },
+          bottom: {
+            content: 'inset-x-0 bottom-0 max-h-full'
+          },
+          left: {
+            content: 'left-0 inset-y-0 w-full max-w-md'
+          }
+        },
+        transition: {
+          true: {
+            overlay: 'data-[state=open]:animate-[fade-in_200ms_ease-out] data-[state=closed]:animate-[fade-out_200ms_ease-in]'
+          }
+        }
+      },
+      compoundVariants: [
+        {
+          transition: true,
+          side: 'top',
+          class: {
+            content: 'data-[state=open]:animate-[slide-in-from-top_200ms_ease-in-out] data-[state=closed]:animate-[slide-out-to-top_200ms_ease-in-out]'
+          }
+        },
+        {
+          transition: true,
+          side: 'right',
+          class: {
+            content: 'data-[state=open]:animate-[slide-in-from-right_200ms_ease-in-out] data-[state=closed]:animate-[slide-out-to-right_200ms_ease-in-out]'
+          }
+        },
+        {
+          transition: true,
+          side: 'bottom',
+          class: {
+            content: 'data-[state=open]:animate-[slide-in-from-bottom_200ms_ease-in-out] data-[state=closed]:animate-[slide-out-to-bottom_200ms_ease-in-out]'
+          }
+        },
+        {
+          transition: true,
+          side: 'left',
+          class: {
+            content: 'data-[state=open]:animate-[slide-in-from-left_200ms_ease-in-out] data-[state=closed]:animate-[slide-out-to-left_200ms_ease-in-out]'
+          }
+        }
+      ]
+    },
+
+    drawer: {
+      slots: {
+        overlay: 'fixed inset-0 bg-elevated/75',
+        content: 'fixed bg-gray-100 dark:bg-gray-900 min-w-[30vw] ring ring-default flex focus:outline-none',
+        handle: [
+          'shrink-0 !bg-accented',
+          'transition-opacity'
+        ],
+        container: 'w-full flex flex-col gap-4 p-4 overflow-y-auto',
+        header: '',
+        title: 'text-highlighted font-semibold',
+        description: 'mt-1 text-muted text-sm',
+        body: 'flex-1 pt-20',
+        footer: 'flex flex-col gap-1.5'
+      },
+      variants: {
+        direction: {
+          top: {
+            content: 'mb-24 flex-col-reverse',
+            handle: 'mb-4'
+          },
+          right: {
+            content: 'flex-row',
+            handle: '!ml-4'
+          },
+          bottom: {
+            content: 'mt-24 flex-col',
+            handle: 'mt-4'
+          },
+          left: {
+            content: 'flex-row-reverse',
+            handle: '!mr-4'
+          }
+        },
+        inset: {
+          true: {
+            content: 'rounded-lg after:hidden'
+          }
+        }
+      },
+      compoundVariants: [
+        {
+          direction: [
+            'top',
+            'bottom'
+          ],
+          class: {
+            content: 'h-auto max-h-[96%]',
+            handle: '!w-12 !h-1.5 mx-auto'
+          }
+        },
+        {
+          direction: [
+            'right',
+            'left'
+          ],
+          class: {
+            content: 'w-auto max-w-[calc(100%-2rem)]',
+            handle: '!h-12 !w-1.5 mt-auto mb-auto'
+          }
+        },
+        {
+          direction: 'top',
+          inset: true,
+          class: {
+            content: 'inset-x-4 top-4'
+          }
+        },
+        {
+          direction: 'top',
+          inset: false,
+          class: {
+            content: 'inset-x-0 top-0 rounded-b-lg'
+          }
+        },
+        {
+          direction: 'bottom',
+          inset: true,
+          class: {
+            content: 'inset-x-4 bottom-4'
+          }
+        },
+        {
+          direction: 'bottom',
+          inset: false,
+          class: {
+            content: 'inset-x-0 bottom-0 rounded-t-lg'
+          }
+        },
+        {
+          direction: 'left',
+          inset: true,
+          class: {
+            content: 'inset-y-4 left-4'
+          }
+        },
+        {
+          direction: 'left',
+          inset: false,
+          class: {
+            content: 'inset-y-0 left-0 rounded-r-lg'
+          }
+        },
+        {
+          direction: 'right',
+          inset: true,
+          class: {
+            content: 'inset-y-4 right-4'
+          }
+        },
+        {
+          direction: 'right',
+          inset: false,
+          class: {
+            content: 'inset-y-0 right-0 rounded-l-lg'
+          }
+        }
+      ]
+    }
+  }
+})

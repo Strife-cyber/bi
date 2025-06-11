@@ -24,11 +24,15 @@
     "eslint": "^9.28.0",
     "firebase": "^11.9.0",
     "form-data": "^4.0.3",
+    "formidable": "^3.5.4",
     "fs": "^0.0.1-security",
     "nuxt": "^3.16.2",
     "tailwindcss": "^4.1.8",
     "typescript": "^5.8.3",
     "vue": "^3.5.16",
     "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@types/formidable": "^3.4.5"
   }
 }

@@ -58,24 +58,60 @@
           <!-- Right: Actions (Desktop) -->
           <div class="hidden md:flex md:items-center md:space-x-2">
             <!-- Notifications -->
-            <UButton
-              variant="ghost"
-              size="md"
-              color="gray"
-              class="px-2.5 relative mx-4"
-              aria-label="Notifications"
-            >
-              <UIcon name="i-heroicons-bell" class="h-16 w-16 dark:text-white text-black" />
-              <UBadge 
-                v-if="unreadNotifications > 0"
-                color="red" 
-                variant="solid" 
-                size="xs"
-                class="absolute -top-1 -right-1 dark:text-white text-black"
+            <UDrawer direction="right">
+              <UButton
+                variant="ghost"
+                size="md"
+                color="gray"
+                class="px-2.5 relative mx-4 cursor-pointer"
+                aria-label="Notifications"
               >
-                {{ unreadNotifications }}
-              </UBadge>
-            </UButton>
+                <UIcon name="i-heroicons-bell" class="h-16 w-16 dark:text-white text-black" />
+                <UBadge 
+                  v-if="unreadNotifications > 0"
+                  color="red" 
+                  variant="solid" 
+                  size="xs"
+                  class="absolute -top-1 -right-1 dark:text-white text-black"
+                >
+                  {{ unreadNotifications }}
+                </UBadge>
+              </UButton>
+
+              <template #content>
+                <div class="w-[30vw] max-w-full p-4 pt-20 space-y-2">
+                  <div v-if="allUnreadNotifications.length === 0" class="w-full text-center text-gray-500 dark:text-gray-400 py-6">
+                    <UIcon name="i-heroicons-bell-slash" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p class="text-sm text-center">No new notifications</p>
+                  </div>
+                  <div v-else>
+                    <div
+                      v-for="(notification, index) in allUnreadNotifications"
+                      :key="index"
+                      class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                    >
+                      <div class="flex items-start space-x-3">
+                        <UIcon
+                          name="i-heroicons-bell-alert"
+                          class="w-5 h-5 mt-0.5 text-blue-500 dark:text-blue-400"
+                        />
+                        <div class="flex-1">
+                          <p class="text-sm text-gray-800 dark:text-gray-100 font-medium">
+                            {{ notification.read ? 'New Notification' : 'Notifications' }}
+                          </p>
+                          <p class="text-sm text-gray-500 dark:text-gray-400">
+                            {{ notification.message || 'You have a new update.' }}
+                          </p>
+                          <p class="text-xs text-gray-400 mt-1">
+                            {{ new Date(notification.timestamp).toLocaleString() }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </UDrawer>
 
             <UDropdownMenu
               :items="userMenuItems"
@@ -101,9 +137,9 @@
                   <UAvatar 
                     :src="user?.photoURL" 
                     :alt="user?.displayName"
-                    size="md"
-                    :ui="{ size: { xs: 'h-8 w-8 text-md' } }"
-                    class="ring-2 ring-gray-300 p-1 dark:text-white  dark:ring-gray-600"
+                    size="sm"
+                    :ui="{ size: { xs: 'text-sm' } }"
+                    class="w-8 h-8 ring-2 ring-gray-300 p-1 dark:text-white  dark:ring-gray-600"
                   />
                   <UIcon 
                     name="i-heroicons-chevron-down" 
@@ -336,6 +372,8 @@ watch(user, (newUser) => {
       allUnreadNotifications.value = list
         .sort((a, b) => b.timestamp - a.timestamp)
         .filter((notif) => !notif.read);
+
+      console.log(allUnreadNotifications.value);
     }
   });
 })
