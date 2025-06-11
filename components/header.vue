@@ -259,7 +259,7 @@ const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: 'i-heroicons-home' },
   { name: 'Inspections', path: '/inspections', icon: 'i-heroicons-building-office' },
   { name: 'Reports', path: '/reports', icon: 'i-heroicons-document-text' },
-  { name: 'Predictions', path: '/predictions', icon: 'i-heroicons-shield-exclamation' },
+  { name: 'Conformité', path: '/predictions', icon: 'i-heroicons-shield-exclamation' }
 ];
 
 const userMenuItems = computed(() => [
@@ -330,6 +330,14 @@ const handleFocusTrap = (event) => {
 
 watch(user, (newUser) => {
   initialize(newUser.uid);
+  fetchNotifications((list) => {
+    unreadNotifications.value = list.length;
+    if (list.length > 0) {
+      allUnreadNotifications.value = list
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .filter((notif) => !notif.read);
+    }
+  });
 })
 
 onMounted(() => {

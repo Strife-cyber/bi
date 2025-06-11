@@ -1,88 +1,92 @@
-import type { User } from "firebase/auth";
-import {
-  get,
-  push,
-  update,
-  remove,
-  Database,
-  ref as dbRef,
-  type DatabaseReference
-} from "firebase/database";
-import { onMounted, ref, watchEffect } from "vue";
-import { useFirebaseDatabase } from "~/services/firebase.service";
+import { ref } from "vue";
 
 export function useNotifications() {
-  let uid = "";
-  const db = ref<Database | null>(null);
-  const userRef = ref<DatabaseReference | null>(null);
+  const uid = ref("");
   const initialized = ref(false);
+  let FIREBASE_DATABASE_URL = "";
+  
 
   function initialize(userId: string) {
-    if (import.meta.client) {
-        db.value = useFirebaseDatabase();
-
-        if (db.value && !initialized.value) {
-            uid = userId;
-            console.log(db.value);
-            // userRef.value = dbRef(db.value);
-            initialized.value = true;
-        }
+    if (import.meta.client && !initialized.value) {
+      uid.value = userId;
+      initialized.value = true;
+      FIREBASE_DATABASE_URL = useRuntimeConfig().public.firebaseDatabaseUrl as string;
     }
   }
 
-  function addNotification(message: string) {
-    if (!userRef.value) {
-      console.warn("Notification skipped: userRef not ready");
-      return Promise.resolve(); // Or reject based on use case
-    }
+  async function addNotification(message: string) {
+    if (!uid.value) return;
 
-    return push(userRef.value, {
+    const payload = {
       message,
       read: false,
-      timestamp: Date.now()
-    });
-  }
+      timestamp: Date.now(),
+    };
 
-  function fetchNotifications(callback: (notifications: any[]) => void) {
-    if (!userRef.value) {
-      console.warn("Cannot fetch notifications: userRef not ready");
-      callback([]);
-      return;
-    }
-
-    get(userRef.value)
-      .then((snapshot) => {
-        const data = snapshot.val();
-        console.log(userRef.value);
-        console.log(data);
-        const notifications = data
-          ? Object.entries(data).map(([id, value]: any) => ({ id, ...value }))
-          : [];
-        callback(notifications);
-      })
-      .catch((error) => {
-        console.error("Error fetching notifications:", error);
-        callback([]);
+    try {
+      const res = await fetch(`${FIREBASE_DATABASE_URL}/notifications/${uid.value}.json`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      return await res.json(); // returns { name: "firebase-generated-id" }
+    } catch (e) {
+      console.error("Failed to add notification:", e);
+    }
   }
 
-  function markAsRead(notificationId: string) {
-    if (!uid || !db.value) throw new Error("Missing user/db");
-    const notifRef = dbRef(db.value, `notifications/${uid}/${notificationId}`);
-    return update(notifRef, { read: true, readAt: Date.now() });
+  async function fetchNotifications(callback: (notifications: any[]) => void) {
+    if (!uid.value) return callback([]);
+
+    try {
+      const res = await fetch(`${FIREBASE_DATABASE_URL}/notifications/${uid.value}.json`);
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = await res.json();
+      const notifications = data
+        ? Object.entries(data).map(([id, value]: any) => ({ id, ...value }))
+        : [];
+      callback(notifications);
+    } catch (e) {
+      console.error("Failed to fetch notifications:", e);
+      callback([]);
+    }
   }
 
-  function deleteNotification(notificationId: string) {
-    if (!uid || !db.value) throw new Error("Missing user/db");
-    const notifRef = dbRef(db.value, `notifications/${uid}/${notificationId}`);
-    return remove(notifRef);
+  async function markAsRead(notificationId: string) {
+    if (!uid.value) throw new Error("Missing user ID");
+
+    try {
+      await fetch(`${FIREBASE_DATABASE_URL}/notifications/${uid.value}/${notificationId}.json`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ read: true, readAt: Date.now() }),
+      });
+    } catch (e) {
+      console.error("Failed to mark notification as read:", e);
+    }
+  }
+
+  async function deleteNotification(notificationId: string) {
+    if (!uid.value) throw new Error("Missing user ID");
+
+    try {
+      await fetch(`${FIREBASE_DATABASE_URL}/notifications/${uid.value}/${notificationId}.json`, {
+        method: "DELETE",
+      });
+    } catch (e) {
+      console.error("Failed to delete notification:", e);
+    }
   }
 
   return {
-    markAsRead,
     initialize,
     addNotification,
     fetchNotifications,
-    deleteNotification
+    markAsRead,
+    deleteNotification,
   };
 }

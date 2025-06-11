@@ -12,7 +12,7 @@ export default defineNuxtPlugin(nuxtApp => {
         messagingSenderId: config.public.firebaseMessagingSenderId as string,
         appId: config.public.firebaseAppId as string,
         measurementId: config.public.firebaseMeasurementId as string,
-          databaseURL: config.public.firebaseDatabaseUrl as string
+        databaseURL: config.public.firebaseDatabaseUrl as string
     }
 
     const app = initializeApp(firebaseConfig);
