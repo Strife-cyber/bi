@@ -18,10 +18,12 @@ class ProjectService {
   Future<Map<String, dynamic>?> createProject(Map<String, dynamic> project) async {
     try {
       final docRef = _projectsCollection.doc();
+      debugPrint(docRef.toString());
       final payload = {
         ...project,
         'id': docRef.id,
       };
+      debugPrint(payload.toString());
       await docRef.set(payload);
       return payload;
     } catch (e) {
@@ -92,10 +94,10 @@ class ProjectService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getAnalysisForProject(String projectId) async {
+  Future<List<Analysis>> getAnalysisForProject(String projectId) async {
     try {
       final snap = await getAnalysisCollection(projectId).get();
-      return snap.docs.map((doc) => doc.data()).toList();
+      return snap.docs.map((doc) => Analysis.fromMap(doc.data())).toList();
     } catch (e) {
       debugPrint('Error getting analysis for project: $e');
       return [];
@@ -147,7 +149,7 @@ class ProjectService {
         description: project['description'],
         createdAt: project['createdAt'] ?? DateTime.now().toIso8601String(),
         updatedAt: project['updatedAt'] ?? DateTime.now().toIso8601String(),
-        analysis: analysis.map((a) => Analysis.fromMap(a)).toList(),
+        analysis: analysis,
       );
 
       await sembast.set('projects', projectId, localProject.toMap());
