@@ -55,7 +55,7 @@ class Project {
       description: map['description'] as String,
       createdAt: map['createdAt'] as String,
       updatedAt: map['updatedAt'] as String,
-      analysis: List<Analysis>.from((map['analysis'] as List<int>).map<Analysis>((x) => Analysis.fromMap(x as Map<String,dynamic>),),),
+      analysis: List<Analysis>.from((map['analysis'] as List).map<Analysis>((x) => Analysis.fromMap(x as Map<String,dynamic>))),
     );
   }
 
