@@ -66,7 +66,7 @@
           color="primary"
           variant="solid"
           size="sm"
-          class="flex-1 hover-scale"
+          class="flex-1 hover-scale cursor-pointer"
         >
           <UIcon name="i-heroicons-folder-open" class="w-4 h-4 mr-2" />
           Ouvrir
