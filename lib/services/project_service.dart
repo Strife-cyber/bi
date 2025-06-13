@@ -19,17 +19,15 @@ class ProjectService {
     _projectsCollection = _firestore.collection('users').doc(uid).collection('projects');
   }
 
-  Future<Map<String, dynamic>?> createProject(Map<String, dynamic> project) async {
+  Future<Project?> createProject(Project project) async {
     try {
       final docRef = _projectsCollection.doc();
-      debugPrint(docRef.toString());
       final payload = {
-        ...project,
+        ...project.toMap(),
         'id': docRef.id,
       };
-      debugPrint(payload.toString());
       await docRef.set(payload);
-      return payload;
+      return Project.fromMap(payload);
     } catch (e) {
       debugPrint('Error creating project: $e');
       return null;

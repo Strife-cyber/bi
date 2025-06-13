@@ -1,5 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:internship/services/notification_service.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:internship/models/project.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:internship/services/project_service.dart';
 
 class Inspections extends ConsumerStatefulWidget {
   const Inspections({super.key});
@@ -12,8 +17,6 @@ class _InspectionsState extends ConsumerState<Inspections>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  bool _showCreateDialog = false;
-  bool _isLoading = false;
   String _activeFilter = 'all';
 
   @override
@@ -31,44 +34,77 @@ class _InspectionsState extends ConsumerState<Inspections>
 
   @override
   Widget build(BuildContext context) {
-    final projects = ref.watch(projectsProvider);
-    final filteredProjects = _getFilteredProjects(projects);
+    final projectService = ref.read(projectServiceProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.grey[900],
       body: SafeArea(
         child: Column(
           children: [
             // Header Section
             _buildHeader(),
-            
             // Main Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Stats Cards
-                    _buildStatsCards(projects),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Filter Tabs
-                    _buildFilterTabs(projects),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Projects Grid
-                    _buildProjectsGrid(filteredProjects),
-                  ],
-                ),
+              child: FutureBuilder<List<Project>>(
+                future: projectService.getProjects(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF10B981),
+                      ),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    debugPrint(snapshot.error.toString());
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red, size: 40),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Failed to load projects',
+                            style: TextStyle(color: Colors.grey.shade700, fontSize: 16),
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton(
+                            onPressed: () => setState(() {}), // Retry fetch
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Try Again', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  final projects = snapshot.data ?? [];
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Stats Cards
+                        _buildStatsCards(projects),
+                        const SizedBox(height: 24),
+                        // Filter Tabs
+                        _buildFilterTabs(projects),
+                        const SizedBox(height: 16),
+                        // Projects Grid
+                        _buildProjectsGrid(_getFilteredProjects(projects)),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ],
         ),
       ),
-      floatingActionButton: _buildCreateProjectFAB(),
     );
   }
 
@@ -104,7 +140,7 @@ class _InspectionsState extends ConsumerState<Inspections>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Gérez vos inspections et analyses de bâtiments',
+                      'Gérez vos inspections et analysis de bâtiments',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.7),
@@ -114,7 +150,7 @@ class _InspectionsState extends ConsumerState<Inspections>
                 ),
               ),
               IconButton(
-                onPressed: () => setState(() => _showCreateDialog = true),
+                onPressed: _showCreateProjectDialog,
                 icon: const Icon(Icons.add_rounded, color: Colors.white),
                 style: IconButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
@@ -124,7 +160,6 @@ class _InspectionsState extends ConsumerState<Inspections>
             ],
           ),
           const SizedBox(height: 16),
-          // Search Bar
           Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.1),
@@ -168,24 +203,29 @@ class _InspectionsState extends ConsumerState<Inspections>
         bgColor: const Color(0xFF10B981).withValues(alpha: 0.1),
       ),
       StatCard(
-        title: 'Analyses',
-        value: projects.fold(0, (sum, p) => sum + p.analyses.length).toString(),
+        title: 'Analysis',
+        value: projects.fold(0, (sums, p) => sums + p.analysis.length).toString(),
         icon: Icons.analytics_rounded,
         color: const Color(0xFF3B82F6),
         bgColor: const Color(0xFF3B82F6).withValues(alpha: 0.1),
       ),
       StatCard(
         title: 'Fichiers',
-        value: projects.fold(0, (sum, p) => 
-          sum + p.analyses.fold(0, (s, a) => s + a.files.length)).toString(),
+        value: projects.fold(0, (sums, p) =>
+            sums + p.analysis.fold(0, (s, a) => s + a.files.length)).toString(),
         icon: Icons.photo_library_rounded,
         color: const Color(0xFF8B5CF6),
         bgColor: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
       ),
       StatCard(
         title: 'Cette semaine',
-        value: projects.where((p) => 
-          DateTime.now().difference(p.updatedAt).inDays <= 7).length.toString(),
+        value: projects
+            .where((p) => DateTime.now()
+                    .difference(p.updatedAt.toDate())
+                    .inDays <=
+                7)
+            .length
+            .toString(),
         icon: Icons.calendar_today_rounded,
         color: const Color(0xFFF59E0B),
         bgColor: const Color(0xFFF59E0B).withValues(alpha: 0.1),
@@ -199,7 +239,7 @@ class _InspectionsState extends ConsumerState<Inspections>
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 1.5,
+        childAspectRatio: 1,
       ),
       itemCount: stats.length,
       itemBuilder: (context, index) => _buildStatCard(stats[index]),
@@ -210,7 +250,7 @@ class _InspectionsState extends ConsumerState<Inspections>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.black87,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -246,7 +286,7 @@ class _InspectionsState extends ConsumerState<Inspections>
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1F2937),
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 4),
@@ -265,14 +305,19 @@ class _InspectionsState extends ConsumerState<Inspections>
   Widget _buildFilterTabs(List<Project> projects) {
     final filters = [
       FilterTab('all', 'Tous', projects.length),
-      FilterTab('active', 'Actifs', projects.where((p) => p.analyses.isNotEmpty).length),
-      FilterTab('recent', 'Récents', projects.where((p) => 
-        DateTime.now().difference(p.updatedAt).inDays <= 7).length),
+      FilterTab('active', 'Actifs', projects.where((p) => p.analysis.isNotEmpty).length),
+      FilterTab('recent', 'Récents',
+          projects
+              .where((p) => DateTime.now()
+                      .difference(p.updatedAt.toDate())
+                      .inDays <=
+                  7)
+              .length),
     ];
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.black87,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -283,54 +328,56 @@ class _InspectionsState extends ConsumerState<Inspections>
         ],
       ),
       child: Row(
-        children: filters.map((filter) => Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _activeFilter = filter.key),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: _activeFilter == filter.key 
-                    ? const Color(0xFF10B981).withValues(alpha: 0.1)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    filter.label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _activeFilter == filter.key 
-                          ? const Color(0xFF10B981)
-                          : Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _activeFilter == filter.key 
-                          ? const Color(0xFF10B981)
-                          : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      filter.count.toString(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: _activeFilter == filter.key 
-                            ? Colors.white
-                            : Colors.grey[600],
+        children: filters
+            .map((filter) => Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _activeFilter = filter.key),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _activeFilter == filter.key
+                            ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            filter.label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _activeFilter == filter.key
+                                  ? const Color(0xFF10B981)
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _activeFilter == filter.key
+                                  ? const Color(0xFF10B981)
+                                  : Colors.grey[300],
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              filter.count.toString(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _activeFilter == filter.key
+                                    ? Colors.white
+                                    : Colors.grey[400],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-        )).toList(),
+                ))
+            .toList(),
       ),
     );
   }
@@ -357,7 +404,7 @@ class _InspectionsState extends ConsumerState<Inspections>
   Widget _buildProjectCard(Project project) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.black87,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -369,13 +416,10 @@ class _InspectionsState extends ConsumerState<Inspections>
       ),
       child: Column(
         children: [
-          // Header
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!),
-              ),
+              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
             ),
             child: Row(
               children: [
@@ -388,15 +432,15 @@ class _InspectionsState extends ConsumerState<Inspections>
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Créé le ${_formatDate(project.createdAt)}',
+                        'Créé le ${DateFormat('MMM d, h:mm a').format(project.createdAt.toDate())}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[500],
+                          color: Colors.grey[400],
                         ),
                       ),
                     ],
@@ -420,21 +464,18 @@ class _InspectionsState extends ConsumerState<Inspections>
               ],
             ),
           ),
-          
-          // Content
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Stats
                   Row(
                     children: [
                       Expanded(
                         child: Column(
                           children: [
                             Text(
-                              project.analyses.length.toString(),
+                              project.analysis.length.toString(),
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -442,10 +483,10 @@ class _InspectionsState extends ConsumerState<Inspections>
                               ),
                             ),
                             Text(
-                              'Analyses',
+                              'Analysis',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[500],
+                                color: Colors.grey[400],
                               ),
                             ),
                           ],
@@ -455,7 +496,9 @@ class _InspectionsState extends ConsumerState<Inspections>
                         child: Column(
                           children: [
                             Text(
-                              project.analyses.fold(0, (sum, a) => sum + a.files.length).toString(),
+                              project.analysis
+                                  .fold(0, (sums, a) => sums + a.files.length)
+                                  .toString(),
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -466,7 +509,7 @@ class _InspectionsState extends ConsumerState<Inspections>
                               'Fichiers',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[500],
+                                color: Colors.grey[400],
                               ),
                             ),
                           ],
@@ -474,10 +517,7 @@ class _InspectionsState extends ConsumerState<Inspections>
                       ),
                     ],
                   ),
-                  
                   const SizedBox(height: 16),
-                  
-                  // Progress Bar
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -488,7 +528,7 @@ class _InspectionsState extends ConsumerState<Inspections>
                             'Progression',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Colors.grey[500],
                             ),
                           ),
                           Text(
@@ -496,7 +536,7 @@ class _InspectionsState extends ConsumerState<Inspections>
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey[600],
+                              color: Colors.grey[500],
                             ),
                           ),
                         ],
@@ -505,15 +545,13 @@ class _InspectionsState extends ConsumerState<Inspections>
                       LinearProgressIndicator(
                         value: _getCompletionRate(project) / 100,
                         backgroundColor: Colors.grey[200],
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                        valueColor:
+                            const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
                         minHeight: 6,
                       ),
                     ],
                   ),
-                  
                   const Spacer(),
-                  
-                  // Action Buttons
                   Row(
                     children: [
                       Expanded(
@@ -551,106 +589,85 @@ class _InspectionsState extends ConsumerState<Inspections>
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_open_rounded,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Aucun projet trouvé',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+    return SizedBox(
+      height: 200,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.folder_open_rounded,
+              size: 64,
+              color: Colors.grey[400],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Créez votre premier projet pour commencer',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
+            const SizedBox(height: 16),
+            Text(
+              'Aucun projet trouvé',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => setState(() => _showCreateDialog = true),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Créer un projet'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            const SizedBox(height: 8),
+            Text(
+              'Créez votre premier projet pour commencer',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildCreateProjectFAB() {
-    return FloatingActionButton.extended(
-      onPressed: () => setState(() => _showCreateDialog = true),
-      backgroundColor: const Color(0xFF10B981),
-      foregroundColor: Colors.white,
-      icon: const Icon(Icons.add_rounded),
-      label: const Text('Nouveau Projet'),
     );
   }
 
   List<Project> _getFilteredProjects(List<Project> projects) {
     var filtered = projects;
 
-    // Apply search filter
     if (_searchController.text.isNotEmpty) {
-      filtered = filtered.where((p) => 
-        p.name.toLowerCase().contains(_searchController.text.toLowerCase())
-      ).toList();
+      filtered = filtered
+          .where((p) =>
+              p.name.toLowerCase().contains(_searchController.text.toLowerCase()))
+          .toList();
     }
 
-    // Apply active filter
     switch (_activeFilter) {
       case 'active':
-        filtered = filtered.where((p) => p.analyses.isNotEmpty).toList();
+        filtered = filtered.where((p) => p.analysis.isNotEmpty).toList();
         break;
       case 'recent':
-        filtered = filtered.where((p) => 
-          DateTime.now().difference(p.updatedAt).inDays <= 7
-        ).toList();
+        filtered = filtered
+            .where((p) => DateTime.now()
+                    .difference(p.updatedAt.toDate())
+                    .inDays <=
+                7)
+            .toList();
         break;
     }
 
     return filtered;
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
   Color _getStatusColor(Project project) {
-    if (project.analyses.isEmpty) return Colors.grey;
-    if (project.analyses.length < 5) return const Color(0xFFF59E0B);
+    if (project.analysis.isEmpty) return Colors.grey;
+    if (project.analysis.length < 5) return const Color(0xFFF59E0B);
     return const Color(0xFF10B981);
   }
 
   String _getStatusText(Project project) {
-    if (project.analyses.isEmpty) return 'Nouveau';
-    if (project.analyses.length < 5) return 'En cours';
+    if (project.analysis.isEmpty) return 'Nouveau';
+    if (project.analysis.length < 5) return 'En cours';
     return 'Actif';
   }
 
   double _getCompletionRate(Project project) {
-    if (project.analyses.isEmpty) return 0;
-    return (project.analyses.length / 10 * 100).clamp(0, 100);
+    if (project.analysis.isEmpty) return 0;
+    return (project.analysis.length / 10 * 100).clamp(0, 100);
   }
 
   void _openProject(Project project) {
-    // Navigate to project detail page
     Navigator.pushNamed(context, '/project/${project.id}');
   }
 
@@ -699,39 +716,201 @@ class _InspectionsState extends ConsumerState<Inspections>
       ),
     );
   }
-}
 
-// Data Models
-class Project {
-  final String id;
-  final String name;
-  final String description;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final List<Analysis> analyses;
+  void _showCreateProjectDialog() {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
+    final projectService = ref.read(projectServiceProvider);
+    final notificationService = ref.read(notificationServiceProvider);
+    final formKey = GlobalKey<FormState>();
 
-  Project({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.analyses,
-  });
-}
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 60,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[700],
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Créer un nouveau projet',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Remplissez les détails de votre nouveau projet',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Nom du projet',
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[800],
+                      prefixIcon: const Icon(Icons.folder, color: Colors.grey),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez entrer un nom';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: descriptionController,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: 'Description',
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[800],
+                      alignLabelWithHint: true,
+                      prefixIcon: const Icon(Icons.description, color: Colors.grey),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez entrer une description';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[800],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Annuler'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (formKey.currentState!.validate()) {
+                              try {
+                                await projectService.createProject(
+                                  Project(
+                                    id: '', 
+                                    name: nameController.text, 
+                                    description: descriptionController.text, 
+                                    createdAt: Timestamp.now(), 
+                                    updatedAt: Timestamp.now(), 
+                                    analysis: []
+                                  )
+                                );
+                                await notificationService.addNotification("Project ${nameController.text} created successfully");
 
-class Analysis {
-  final String id;
-  final String name;
-  final List<String> files;
-  final DateTime createdAt;
-
-  Analysis({
-    required this.id,
-    required this.name,
-    required this.files,
-    required this.createdAt,
-  });
+                                // Refresh projects
+                                setState(() {});
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Projet "${nameController.text}" créé avec succès',
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
+                                      backgroundColor: const Color(0xFF10B981),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Erreur de création: ${e.toString()}',
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Créer'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class StatCard {
@@ -757,30 +936,3 @@ class FilterTab {
 
   FilterTab(this.key, this.label, this.count);
 }
-
-// Mock Provider
-final projectsProvider = StateProvider<List<Project>>((ref) => [
-  Project(
-    id: '1',
-    name: 'Inspection Bâtiment A',
-    description: 'Inspection complète du bâtiment principal',
-    createdAt: DateTime.now().subtract(const Duration(days: 5)),
-    updatedAt: DateTime.now().subtract(const Duration(days: 1)),
-    analyses: [
-      Analysis(
-        id: '1',
-        name: 'Analyse structurelle',
-        files: ['photo1.jpg', 'photo2.jpg'],
-        createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      ),
-    ],
-  ),
-  Project(
-    id: '2',
-    name: 'Contrôle Sécurité',
-    description: 'Vérification des systèmes de sécurité',
-    createdAt: DateTime.now().subtract(const Duration(days: 10)),
-    updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-    analyses: [],
-  ),
-]);

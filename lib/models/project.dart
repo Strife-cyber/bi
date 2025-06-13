@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:internship/models/analysis.dart';
 
@@ -6,8 +7,8 @@ class Project {
   final String id;
   final String name;
   final String description;
-  final String createdAt;
-  final String updatedAt;
+  final Timestamp createdAt;
+  final Timestamp updatedAt;
   final List<Analysis> analysis;
 
   Project({
@@ -23,8 +24,8 @@ class Project {
     String? id,
     String? name,
     String? description,
-    String? createdAt,
-    String? updatedAt,
+    Timestamp? createdAt,
+    Timestamp? updatedAt,
     List<Analysis>? analysis,
   }) {
     return Project(
@@ -53,8 +54,8 @@ class Project {
       id: map['id'] as String,
       name: map['name'] as String,
       description: map['description'] as String,
-      createdAt: map['createdAt'].toString(),
-      updatedAt: map['updatedAt'].toString(),
+      createdAt: map['createdAt'] as Timestamp,
+      updatedAt: map['updatedAt'] as Timestamp,
       analysis: map['analysis'] != null ? List<Analysis>.from((map['analysis'] as List).map<Analysis>((x) => Analysis.fromMap(x as Map<String,dynamic>))) : [],
     );
   }
