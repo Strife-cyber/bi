@@ -2,25 +2,17 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:internship/services/auth_service.dart';
 
-final notificationServiceProvider = Provider((ref) => NotificationService(firebaseDatabaseUrl: 'https://internship-b6df0-default-rtdb.firebaseio.com'));
+final notificationServiceProvider = Provider((ref) => NotificationService(firebaseDatabaseUrl: 'https://internship-b6df0-default-rtdb.firebaseio.com', uid: ref.read(authServiceProvider).currentUser!.uid));
 
 class NotificationService {
   final String firebaseDatabaseUrl;
-  String? _uid;
-  bool _initialized = false;
+  final String uid;
 
-  NotificationService({required this.firebaseDatabaseUrl});
-
-  void initialize(String userId) {
-    if (!_initialized) {
-      _uid = userId;
-      _initialized = true;
-    }
-  }
+  NotificationService({required this.firebaseDatabaseUrl, required this.uid});
 
   Future<String?> addNotification(String message) async {
-    if (_uid == null) return null;
 
     final payload = {
       "message": message,
@@ -28,7 +20,7 @@ class NotificationService {
       "timestamp": DateTime.now().millisecondsSinceEpoch,
     };
 
-    final url = Uri.parse('$firebaseDatabaseUrl/notifications/$_uid.json');
+    final url = Uri.parse('$firebaseDatabaseUrl/notifications/$uid.json');
 
     final response = await http.post(
       url,
@@ -47,9 +39,7 @@ class NotificationService {
   }
 
   Future<List<Map<String, dynamic>>> fetchNotifications() async {
-    if (_uid == null) return [];
-
-    final url = Uri.parse('$firebaseDatabaseUrl/notifications/$_uid.json');
+    final url = Uri.parse('$firebaseDatabaseUrl/notifications/$uid.json');
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -67,10 +57,8 @@ class NotificationService {
   }
 
   Future<bool> markAsRead(String notificationId) async {
-    if (_uid == null) return false;
-
     final url =
-        Uri.parse('$firebaseDatabaseUrl/notifications/$_uid/$notificationId.json');
+        Uri.parse('$firebaseDatabaseUrl/notifications/$uid/$notificationId.json');
 
     final payload = {
       "read": true,
@@ -92,10 +80,8 @@ class NotificationService {
   }
 
   Future<bool> deleteNotification(String notificationId) async {
-    if (_uid == null) return false;
-
     final url =
-        Uri.parse('$firebaseDatabaseUrl/notifications/$_uid/$notificationId.json');
+        Uri.parse('$firebaseDatabaseUrl/notifications/$uid/$notificationId.json');
 
     final response = await http.delete(url);
 

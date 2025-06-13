@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:internship/widgets/glassmorphism_scaffold.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -16,7 +17,6 @@ class _DashboardState extends State<Dashboard>
   late Animation<Offset> _slideAnimation;
   
   int _selectedIndex = 0;
-  bool _showNotifications = false;
 
   @override
   void initState() {
@@ -62,14 +62,13 @@ class _DashboardState extends State<Dashboard>
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: FadeTransition(
+      body: GlassmorphicScaffold(body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
           position: _slideAnimation,
           child: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              _buildAppBar(),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -95,91 +94,8 @@ class _DashboardState extends State<Dashboard>
             ],
           ),
         ),
-      ),
-      floatingActionButton: _buildFloatingActionButton(),
+      )),
       bottomNavigationBar: _buildBottomNavigationBar(),
-    );
-  }
-
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 0,
-      floating: true,
-      pinned: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      flexibleSpace: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.8),
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.green.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.business,
-              color: Colors.green.shade600,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Bâtiment Vert',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.black87,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
-              onPressed: () {
-                setState(() {
-                  _showNotifications = !_showNotifications;
-                });
-                _showNotificationsBottomSheet();
-              },
-            ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.red.shade500,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          ],
-        ),
-        IconButton(
-          icon: const Icon(Icons.account_circle_outlined, color: Colors.black87),
-          onPressed: _showProfileBottomSheet,
-        ),
-      ],
     );
   }
 
@@ -906,18 +822,6 @@ class _DashboardState extends State<Dashboard>
     );
   }
 
-  Widget _buildFloatingActionButton() {
-    return FloatingActionButton.extended(
-      onPressed: () => _showQuickActionsBottomSheet(),
-      backgroundColor: Colors.green.shade600,
-      icon: const Icon(Icons.add, color: Colors.white),
-      label: const Text(
-        'Actions',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
   Widget _buildBottomNavigationBar() {
     return ClipRRect(
       child: BackdropFilter(
@@ -1014,317 +918,7 @@ class _DashboardState extends State<Dashboard>
       ),
     );
   }
-
-  // Bottom Sheets and Dialogs
-  void _showNotificationsBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _buildGlassmorphicBottomSheet(
-        title: 'Notifications',
-        child: Column(
-          children: [
-            _buildNotificationItem(
-              title: 'Alerte critique',
-              subtitle: 'Fissure détectée - Immeuble New Bell',
-              time: 'Il y a 30 min',
-              icon: Icons.warning,
-              color: Colors.red,
-            ),
-            _buildNotificationItem(
-              title: 'Inspection terminée',
-              subtitle: 'Centre Commercial Melen - Rapport disponible',
-              time: 'Il y a 2h',
-              icon: Icons.check_circle,
-              color: Colors.green,
-            ),
-            _buildNotificationItem(
-              title: 'Drone en mission',
-              subtitle: 'Surveillance automatique - Zone Bépanda',
-              time: 'Il y a 4h',
-              icon: Icons.flight,
-              color: Colors.blue,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showProfileBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _buildGlassmorphicBottomSheet(
-        title: 'Profil',
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.green.shade100,
-              child: Text(
-                'JP',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green.shade600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Jean-Pierre Mballa',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Inspecteur Principal',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 24),
-            _buildProfileOption(Icons.person, 'Mon profil'),
-            _buildProfileOption(Icons.settings, 'Paramètres'),
-            _buildProfileOption(Icons.help, 'Aide'),
-            _buildProfileOption(Icons.logout, 'Déconnexion'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showQuickActionsBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _buildGlassmorphicBottomSheet(
-        title: 'Actions rapides',
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildQuickActionButton(
-                    icon: Icons.add_circle_outline,
-                    label: 'Nouvelle Inspection',
-                    color: Colors.green,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showNewInspectionDialog();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildQuickActionButton(
-                    icon: Icons.flight_takeoff,
-                    label: 'Lancer Drone',
-                    color: Colors.blue,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showDroneMissionDialog();
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildQuickActionButton(
-                    icon: Icons.psychology,
-                    label: 'Rapport IA',
-                    color: Colors.purple,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showAIReportDialog();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildQuickActionButton(
-                    icon: Icons.sensors,
-                    label: 'Capteurs IoT',
-                    color: Colors.orange,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showSensorsDialog();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGlassmorphicBottomSheet({
-    required String title,
-    required Widget child,
-  }) {
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.5),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 20,
-              spreadRadius: 0,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            child,
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotificationItem({
-    required String title,
-    required String subtitle,
-    required String time,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            time,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileOption(IconData icon, String label) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey.shade600),
-      title: Text(label),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.pop(context),
-    );
-  }
-
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: color.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
+  
   // Dialog methods
   void _showNewInspectionDialog() {
     showDialog(

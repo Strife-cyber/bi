@@ -1,15 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:internship/models/analysis.dart';
 import 'package:internship/models/project.dart';
+import 'package:internship/models/analysis.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:internship/services/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internship/services/sembast_service.dart';
+
+final projectServiceProvider = Provider((ref) => ProjectService(uid: ref.read(authServiceProvider).currentUser!.uid));
 
 class ProjectService {
   late FirebaseFirestore _firestore;
   late String _userId;
   late CollectionReference<Map<String, dynamic>> _projectsCollection;
 
-  void initialize(String uid) {
+  ProjectService({ required String uid }) {
     _userId = uid;
     _firestore = FirebaseFirestore.instance;
     _projectsCollection = _firestore.collection('users').doc(uid).collection('projects');
@@ -32,10 +36,10 @@ class ProjectService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getProjects() async {
+  Future<List<Project>> getProjects() async {
     try {
       final snap = await _projectsCollection.get();
-      return snap.docs.map((doc) => doc.data()).toList();
+      return snap.docs.map((doc) => Project.fromMap(doc.data())).toList();
     } catch (e) {
       debugPrint('Error getting projects: $e');
       return [];
@@ -139,16 +143,16 @@ class ProjectService {
     final projects = await getProjects();
 
     for (final project in projects) {
-      final projectId = project['id'] as String;
+      final projectId = project.id;
 
       final analysis = await getAnalysisForProject(projectId);
 
       final localProject = Project(
         id: projectId,
-        name: project['name'],
-        description: project['description'],
-        createdAt: project['createdAt'] ?? DateTime.now().toIso8601String(),
-        updatedAt: project['updatedAt'] ?? DateTime.now().toIso8601String(),
+        name: project.name,
+        description: project.description,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
         analysis: analysis,
       );
 

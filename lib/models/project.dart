@@ -53,8 +53,8 @@ class Project {
       id: map['id'] as String,
       name: map['name'] as String,
       description: map['description'] as String,
-      createdAt: map['createdAt'] as String,
-      updatedAt: map['updatedAt'] as String,
+      createdAt: map['createdAt'].toString(),
+      updatedAt: map['updatedAt'].toString(),
       analysis: map['analysis'] != null ? List<Analysis>.from((map['analysis'] as List).map<Analysis>((x) => Analysis.fromMap(x as Map<String,dynamic>))) : [],
     );
   }
