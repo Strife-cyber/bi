@@ -1,10 +1,10 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:internship/firebase_options.dart';
 import 'package:internship/pages/auth.dart';
-import 'package:internship/pages/dashboard.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:internship/firebase_options.dart';
+import 'package:internship/widgets/app_scaffold.dart';
 import 'package:internship/services/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internship/services/sembast_service.dart';
 
 void main() async {
@@ -45,7 +45,7 @@ class BatimentIntelligentApp extends ConsumerWidget {
             );
           } else {
             final isLoggedIn = snapshot.data ?? false;
-            return isLoggedIn ? const Dashboard() : const AuthWrapper();
+            return isLoggedIn ? const AppScaffold() : const AuthWrapper();
           }
         },
       ),

@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:internship/widgets/glassmorphism_scaffold.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -16,8 +15,6 @@ class _DashboardState extends State<Dashboard>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   
-  int _selectedIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -62,7 +59,7 @@ class _DashboardState extends State<Dashboard>
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: GlassmorphicScaffold(body: FadeTransition(
+      body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
           position: _slideAnimation,
@@ -94,8 +91,7 @@ class _DashboardState extends State<Dashboard>
             ],
           ),
         ),
-      )),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      ),
     );
   }
 
@@ -822,62 +818,6 @@ class _DashboardState extends State<Dashboard>
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.8),
-            border: Border(
-              top: BorderSide(
-                color: Colors.grey.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            selectedItemColor: Colors.green.shade600,
-            unselectedItemColor: Colors.grey.shade600,
-            selectedFontSize: 12,
-            unselectedFontSize: 12,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard),
-                label: 'Tableau de bord',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.search),
-                label: 'Inspections',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.flight),
-                label: 'Drones',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.analytics),
-                label: 'Rapports',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.settings),
-                label: 'Paramètres',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   // Glassmorphism UI Components
   Widget _buildGlassmorphicCard({
     required Widget child,
@@ -918,7 +858,7 @@ class _DashboardState extends State<Dashboard>
       ),
     );
   }
-  
+
   // Dialog methods
   void _showNewInspectionDialog() {
     showDialog(

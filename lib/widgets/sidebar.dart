@@ -28,10 +28,9 @@ class Sidebar extends ConsumerStatefulWidget {
   ConsumerState<Sidebar> createState() => _SidebarState();
 }
 
-class _SidebarState extends ConsumerState<Sidebar> 
-    with SingleTickerProviderStateMixin {
+class _SidebarState extends ConsumerState<Sidebar> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  
+
   @override
   void initState() {
     super.initState();
@@ -41,7 +40,7 @@ class _SidebarState extends ConsumerState<Sidebar>
     );
     _animationController.forward();
   }
-  
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -61,16 +60,16 @@ class _SidebarState extends ConsumerState<Sidebar>
     final authService = ref.read(authServiceProvider);
     final projectService = ref.read(projectServiceProvider);
     final notificationService = ref.read(notificationServiceProvider);
-    
+
     final userName = authService.currentUser?.displayName ?? '';
     final userProfile = authService.currentUser?.photoURL;
-   
+
     return SafeArea(
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         width: widget.isExpanded ? widget.width : 70,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B), // Dark blue-gray background
+          color: const Color(0xFF1E293B),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.15),
@@ -82,206 +81,177 @@ class _SidebarState extends ConsumerState<Sidebar>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Logo and toggle button
             _buildHeader(context),
-            
-            // User profile section
             if (widget.isExpanded) _buildUserProfile(userName, userProfile),
-            
             const SizedBox(height: 16),
-            
-            // Navigation section
             Expanded(
-              child: SingleChildScrollView(
+              child: CustomScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(
-                  horizontal: widget.isExpanded ? 12 : 8,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.isExpanded) ...[
-                      _buildSectionTitle('Notifications'),
-                      const SizedBox(height: 8),
-                    ],
-
+                slivers: [
+                  if (widget.isExpanded) ...[
+                    SliverToBoxAdapter(child: _buildSectionTitle('Notifications')),
+                    SliverToBoxAdapter(child: const SizedBox(height: 8)),
+                    // Notifications FutureBuilder
                     FutureBuilder<List<Map<String, dynamic>>>(
                       future: notificationService.fetchNotifications(),
                       builder: (context, snapshot) {
-                        // Handle loading state
                         if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF2ECC71), // Green color to match theme
-                              strokeWidth: 2.0,
+                          return const SliverToBoxAdapter(
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF2ECC71),
+                                strokeWidth: 2.0,
+                              ),
                             ),
                           );
                         }
-                        
-                        // Handle error state
                         if (snapshot.hasError) {
                           debugPrint(snapshot.error.toString());
-
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.error_outline, color: Colors.red, size: 40),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Failed to load notifications',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // Retry fetching notifications
-                                    notificationService.fetchNotifications();
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2ECC71),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                          return SliverToBoxAdapter(
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.error_outline, color: Colors.red, size: 40),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'Failed to load notifications',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
+                                      fontSize: 16,
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Try Again',
-                                    style: TextStyle(color: Colors.white),
+                                  const SizedBox(height: 10),
+                                  ElevatedButton(
+                                    onPressed: () => setState(() {}),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF2ECC71),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Try Again',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           );
                         }
-                        
-                        // Handle empty data state
                         if (snapshot.data == null || snapshot.data!.isEmpty) {
-                          return const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.notifications_off, 
-                                    color: Color(0xFF2ECC71), size: 40),
-                                SizedBox(height: 10),
-                                Text(
-                                  'No notifications yet',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 16,
+                          return const SliverToBoxAdapter(
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.notifications_off, color: Color(0xFF2ECC71), size: 40),
+                                  SizedBox(height: 10),
+                                  Text(
+                                    'No notifications yet',
+                                    style: TextStyle(color: Colors.grey, fontSize: 16),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           );
                         }
-                        
-                        // Success state - build list of notifications
                         final notifications = snapshot.data!;
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          child: SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.5,
-                            child: ListView.builder(
-                              itemCount: notifications.length,
-                              itemBuilder: (context, index) {
-                                final notification = notifications[index];
-                          
-                                return Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.1),
-                                      width: 1,
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final notification = notifications[index];
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.5),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.5),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
+                                  ],
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  leading: Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2ECC71).withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.notifications_active,
+                                      color: Color(0xFF2ECC71),
+                                      size: 22,
+                                    ),
+                                  ),
+                                  title: Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        notification['read'] == false ? 'New Notification' : 'Read',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      Text(
+                                        notification['message'] ?? 'You have a new notification',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade400,
+                                          fontSize: 14,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        formatTimestamp(notification['timestamp']),
+                                        style: TextStyle(
+                                          color: Colors.grey.shade500,
+                                          fontSize: 12,
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    leading: Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF2ECC71).withValues(alpha: 0.15),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.notifications_active,
-                                        color: Color(0xFF2ECC71),
-                                        size: 22,
-                                      ),
-                                    ),
-                                    title: Column(
-                                      mainAxisAlignment: MainAxisAlignment.start,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      spacing: 2,
-                                      children: [
-                                        Text(
-                                          notification['read'] == false ? 'New Notification' : 'Read',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        Text(
-                                          notification['message'] ?? 'You have a new notification',
-                                          style: TextStyle(
-                                            color: Colors.grey.shade400,
-                                            fontSize: 14,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Text(
-                                          formatTimestamp(notification['timestamp']),
-                                          style: TextStyle(
-                                            color: Colors.grey.shade500,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  ),
-                                );
-                              },
-                            ),
+                                ),
+                              );
+                            },
+                            childCount: notifications.length,
                           ),
                         );
                       },
                     ),
-                    
-                    if (widget.isExpanded) ...[
-                      const SizedBox(height: 20),
-                      _buildSectionTitle('Projets'),
-                      const SizedBox(height: 8),
-                      FutureBuilder<List<Project>>(
-                        future: projectService.getProjects(),
-                        builder: (context, snapshot) {
-                          // Handle loading state
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(
+                    SliverToBoxAdapter(child: const SizedBox(height: 20)),
+                    // Projects FutureBuilder
+                    SliverToBoxAdapter(child: _buildSectionTitle('Projets')),
+                    SliverToBoxAdapter(child: const SizedBox(height: 8)),
+                    FutureBuilder<List<Project>>(
+                      future: projectService.getProjects(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const SliverToBoxAdapter(
+                            child: Center(
                               child: CircularProgressIndicator(
-                                color: Color(0xFF2ECC71), // Green to match theme
+                                color: Color(0xFF2ECC71),
                                 strokeWidth: 2.0,
                               ),
-                            );
-                          }
-                          
-                          // Handle error state
-                          if (snapshot.hasError) {
-                            return Center(
+                            ),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return SliverToBoxAdapter(
+                            child: Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -296,10 +266,7 @@ class _SidebarState extends ConsumerState<Sidebar>
                                   ),
                                   const SizedBox(height: 12),
                                   ElevatedButton(
-                                    onPressed: () {
-                                      // Re-fetch projects
-                                      projectService.getProjects();
-                                    },
+                                    onPressed: () => setState(() {}),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF2ECC71),
                                       shape: RoundedRectangleBorder(
@@ -313,59 +280,46 @@ class _SidebarState extends ConsumerState<Sidebar>
                                   ),
                                 ],
                               ),
-                            );
-                          }
-                          
-                          // Handle empty state
-                          if (snapshot.data == null || snapshot.data!.isEmpty) {
-                            return const Center(
+                            ),
+                          );
+                        }
+                        if (snapshot.data == null || snapshot.data!.isEmpty) {
+                          return const SliverToBoxAdapter(
+                            child: Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.folder_open, 
-                                      color: Color(0xFF2ECC71), 
-                                      size: 50),
+                                  Icon(Icons.folder_open, color: Color(0xFF2ECC71), size: 50),
                                   SizedBox(height: 12),
                                   Text(
                                     'No projects yet',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 16,
-                                    ),
+                                    style: TextStyle(color: Colors.grey, fontSize: 16),
                                   ),
                                 ],
                               ),
-                            );
-                          }
-                          
-                          // Success state - build project list
-                          final projects = snapshot.data!;
-                          return SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            child: SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.5,
-                              child: ListView.builder(
-                                itemCount: projects.length,
-                                itemBuilder: (context, index) {
-                                  final project = projects[index];
-                                  return _buildProjectItem(
-                                    project.name,
-                                    1,
-                                    getRandomColor()
-                                  );
-                                },
-                              ),
                             ),
                           );
-                        },
-                      )
-                    ],
+                        }
+                        final projects = snapshot.data!;
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final project = projects[index];
+                              return _buildProjectItem(
+                                project.name,
+                                1, // Adjust progress as needed
+                                getRandomColor(),
+                              );
+                            },
+                            childCount: projects.length,
+                          ),
+                        );
+                      },
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
-            
-            // Bottom section with logout
             _buildBottomSection(),
           ],
         ),
@@ -380,7 +334,7 @@ class _SidebarState extends ConsumerState<Sidebar>
         vertical: 16,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A), // Darker blue-gray for header
+        color: const Color(0xFF0F172A),
         border: Border(
           bottom: BorderSide(
             color: Colors.white.withValues(alpha: 0.1),
@@ -390,7 +344,6 @@ class _SidebarState extends ConsumerState<Sidebar>
       ),
       child: Row(
         children: [
-          // Logo
           Container(
             width: 36,
             height: 36,
@@ -398,10 +351,7 @@ class _SidebarState extends ConsumerState<Sidebar>
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF10B981), // emerald-500
-                  Color(0xFF0D9488), // teal-600
-                ],
+                colors: [Color(0xFF10B981), Color(0xFF0D9488)],
               ),
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
@@ -426,13 +376,9 @@ class _SidebarState extends ConsumerState<Sidebar>
           ),
           if (widget.isExpanded) ...[
             const SizedBox(width: 12),
-            // App name with gradient
             ShaderMask(
               shaderCallback: (bounds) => const LinearGradient(
-                colors: [
-                  Color(0xFF10B981), // emerald-500
-                  Color(0xFF0D9488), // teal-600
-                ],
+                colors: [Color(0xFF10B981), Color(0xFF0D9488)],
               ).createShader(bounds),
               child: const Text(
                 'Bâtiment Intelligent',
@@ -445,7 +391,6 @@ class _SidebarState extends ConsumerState<Sidebar>
             ),
             const Spacer(),
           ],
-          // Toggle button
           IconButton(
             onPressed: widget.onToggleSidebar,
             icon: Icon(
@@ -467,7 +412,6 @@ class _SidebarState extends ConsumerState<Sidebar>
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(
         children: [
-          // Avatar
           Container(
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
@@ -480,21 +424,22 @@ class _SidebarState extends ConsumerState<Sidebar>
             child: CircleAvatar(
               radius: 18,
               backgroundColor: const Color(0xFF2D3748),
-              child: userProfile != null ? CircleAvatar(
-                radius: 14,
-                backgroundImage: NetworkImage(userProfile),
-              ) : Text(
-                _getInitials(userName),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF10B981),
-                ),
-              ),
+              child: userProfile != null
+                  ? CircleAvatar(
+                      radius: 14,
+                      backgroundImage: NetworkImage(userProfile),
+                    )
+                  : Text(
+                      _getInitials(userName),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 12),
-          // User info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -511,7 +456,6 @@ class _SidebarState extends ConsumerState<Sidebar>
               ],
             ),
           ),
-          // Status indicator
           Container(
             width: 8,
             height: 8,
@@ -546,7 +490,7 @@ class _SidebarState extends ConsumerState<Sidebar>
 
   Widget _buildProjectItem(String name, double progress, Color color) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF2D3748),
