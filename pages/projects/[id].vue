@@ -627,7 +627,9 @@ const createAnalysis = async () => {
           files,
           result: {},
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          userId: user.value?.uid,
+          projectId: project.value.id
         },
         user: user.value?.uid
       })
