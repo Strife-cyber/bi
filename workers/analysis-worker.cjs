@@ -33,19 +33,19 @@ async function runWorker() {
       const job = jobs.find(j => j.status === 'pending')
 
       if (job) {
-        job.status = 'processing'
-        await saveJobs(jobs)
+        // job.status = 'processing'
+        // await saveJobs(jobs)
 
         try {
           await processJob(job)
-          job.status = 'done'
-          job.completedAt = new Date().toISOString()
+          // job.status = 'done'
+          // job.completedAt = new Date().toISOString()
         } catch (e) {
-          job.status = 'failed'
-          job.error = e.message
+          // job.status = 'failed'
+          // job.error = e.message
         }
 
-        await saveJobs(jobs)
+        // await saveJobs(jobs)
       }
     } catch (e) {
       console.error('Worker error:', e.message)

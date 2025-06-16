@@ -6,7 +6,7 @@ import FormData from "form-data";
 const CRACKS_SECRET_KEY = process.env.CRACKS_SECRET_KEY!;
 const BASE_URL = process.env.CRACKS_API_URL || "http://localhost:8000";
 
-export default async function cracked(path: string, userId: string, notify = false, key = '') {
+export default async function cracked(path: string, userId?: string, notify = false, key = '') {
     try {
         const form = new FormData();
         const fileBuffer = fs.readFileSync(path);
@@ -56,7 +56,7 @@ export default async function cracked(path: string, userId: string, notify = fal
             }
         });
 
-        if (notify) {
+        if (notify && userId) {
             sendNotification({
                 userId: userId,
                 title: "Résultat de Fissure Disponible",
