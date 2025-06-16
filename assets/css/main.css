@@ -479,3 +479,12 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+.hover-scale {
+  @apply transition-transform duration-300 hover:scale-105;
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 hover:border-emerald-300 dark:hover:border-emerald-600;
+}
+

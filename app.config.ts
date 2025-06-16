@@ -189,266 +189,33 @@ export default defineAppConfig({
         }
       ]
     },
-
-
-    badge: {
+    modal: {
       slots: {
-        base: 'font-medium inline-flex items-center',
-        label: 'truncate',
-        leadingIcon: 'shrink-0',
-        leadingAvatar: 'shrink-0',
-        leadingAvatarSize: '',
-        trailingIcon: 'shrink-0'
+        overlay: 'fixed inset-0 bg-gray-800/90',
+        content: 'fixed divide-y divide-default flex flex-col focus:outline-none dark:bg-gray-900 bg-gray-100 dark:text-white',
+        header: 'flex items-center gap-1.5 p-4 sm:px-6 min-h-16 dark:bg-gray-900 bg-gray-100',
+        wrapper: '',
+        body: 'flex-1 overflow-y-auto p-4 sm:p-6 dark:bg-gray-900 bg-gray-100',
+        footer: 'flex items-center gap-1.5 p-4 sm:px-6 dark:bg-gray-900 bg-gray-100',
+        title: 'text-highlighted font-semibold',
+        description: 'mt-1 text-muted text-sm',
+        close: 'absolute top-6 end-4 cursor-pointer'
       },
       variants: {
-        buttonGroup: {
-          horizontal: 'not-only:first:rounded-e-none not-only:last:rounded-s-none not-last:not-first:rounded-none focus-visible:z-[1]',
-          vertical: 'not-only:first:rounded-b-none not-only:last:rounded-t-none not-last:not-first:rounded-none focus-visible:z-[1]'
-        },
-        color: {
-          primary: 'blue',       // used for primary actions (buttons, highlights)
-          secondary: 'violet',   // secondary accents or alternative actions
-          success: 'emerald',    // success messages or indicators
-          info: 'sky',           // informative notes or tooltips
-          warning: 'amber',      // warnings like "are you sure?" messages
-          error: 'rose',         // error alerts, validations
-          neutral: 'zinc'        // base gray-like colors for backgrounds, text
-        },
-
-        variant: {
-          solid: 'bg-{color}-500 text-white border-transparent',
-          outline: 'bg-transparent border border-{color}-500 text-{color}-500',
-          soft: 'bg-{color}-100 text-{color}-800 border border-transparent',
-          subtle: 'bg-{color}-50 text-{color}-700 border border-transparent'
-        },
-        size: {
-          xs: {
-            base: 'text-[8px]/3 px-1 py-0.5 gap-1 rounded-sm',
-            leadingIcon: 'size-3',
-            leadingAvatarSize: '3xs',
-            trailingIcon: 'size-3'
-          },
-          sm: {
-            base: 'text-[10px]/3 px-1.5 py-1 gap-1 rounded-sm',
-            leadingIcon: 'size-3',
-            leadingAvatarSize: '3xs',
-            trailingIcon: 'size-3'
-          },
-          md: {
-            base: 'text-xs px-2 py-1 gap-1 rounded-md',
-            leadingIcon: 'size-4',
-            leadingAvatarSize: '3xs',
-            trailingIcon: 'size-4'
-          },
-          lg: {
-            base: 'text-sm px-2 py-1 gap-1.5 rounded-md',
-            leadingIcon: 'size-5',
-            leadingAvatarSize: '2xs',
-            trailingIcon: 'size-5'
-          },
-          xl: {
-            base: 'text-base px-2.5 py-1 gap-1.5 rounded-md',
-            leadingIcon: 'size-6',
-            leadingAvatarSize: '2xs',
-            trailingIcon: 'size-6'
+        transition: {
+          true: {
+            overlay: 'data-[state=open]:animate-[fade-in_200ms_ease-out] data-[state=closed]:animate-[fade-out_200ms_ease-in]',
+            content: 'data-[state=open]:animate-[scale-in_200ms_ease-out] data-[state=closed]:animate-[scale-out_200ms_ease-in]'
           }
         },
-        square: {
-          true: ''
-        }
-      },
-      compoundVariants: [
-        {
-          color: 'primary',
-          variant: 'solid',
-          class: 'bg-primary text-inverted'
-        },
-        {
-          color: 'primary',
-          variant: 'outline',
-          class: 'text-primary ring ring-inset ring-primary/50'
-        },
-        {
-          color: 'primary',
-          variant: 'soft',
-          class: 'bg-primary/10 text-primary'
-        },
-        {
-          color: 'primary',
-          variant: 'subtle',
-          class: 'bg-primary/10 text-primary ring ring-inset ring-primary/25'
-        },
-        {
-          color: 'neutral',
-          variant: 'solid',
-          class: 'text-inverted bg-inverted'
-        },
-        {
-          color: 'neutral',
-          variant: 'outline',
-          class: 'ring ring-inset ring-accented text-default bg-default'
-        },
-        {
-          color: 'neutral',
-          variant: 'soft',
-          class: 'text-default bg-elevated'
-        },
-        {
-          color: 'neutral',
-          variant: 'subtle',
-          class: 'ring ring-inset ring-accented text-default bg-elevated'
-        },
-        {
-          size: 'xs',
-          square: true,
-          class: 'p-0.5'
-        },
-        {
-          size: 'sm',
-          square: true,
-          class: 'p-1'
-        },
-        {
-          size: 'md',
-          square: true,
-          class: 'p-1'
-        },
-        {
-          size: 'lg',
-          square: true,
-          class: 'p-1'
-        },
-        {
-          size: 'xl',
-          square: true,
-          class: 'p-1'
-        }
-      ],
-      defaultVariants: {
-        color: 'primary',
-        variant: 'solid',
-        size: 'md'
-      }
-    },
-
-    dropdownMenu: {
-      slots: {
-        content: 'min-w-32 bg-gray-100 dark:bg-gray-900 dark:text-gray-300 shadow-lg rounded-md ring ring-default overflow-hidden data-[state=open]:animate-[scale-in_100ms_ease-out] data-[state=closed]:animate-[scale-out_100ms_ease-in] origin-(--reka-dropdown-menu-content-transform-origin) flex flex-col',
-        viewport: 'relative divide-y divide-default scroll-py-1 overflow-y-auto flex-1',
-        arrow: 'fill-default',
-        group: 'p-1 isolate',
-        label: 'w-full flex items-center font-semibold text-highlighted',
-        separator: '-mx-1 my-1 h-px bg-border',
-        item: 'group relative w-full flex items-center select-none outline-none before:absolute before:z-[-1] before:inset-px before:rounded-md data-disabled:cursor-not-allowed data-disabled:opacity-75',
-        itemLeadingIcon: 'shrink-0',
-        itemLeadingAvatar: 'shrink-0',
-        itemLeadingAvatarSize: '',
-        itemTrailing: 'ms-auto inline-flex gap-1.5 items-center',
-        itemTrailingIcon: 'shrink-0',
-        itemTrailingKbds: 'hidden lg:inline-flex items-center shrink-0',
-        itemTrailingKbdsSize: '',
-        itemLabel: 'truncate',
-        itemLabelExternalIcon: 'inline-block size-3 align-top text-dimmed'
-      },
-      variants: {
-        color: {
-          primary: '',
-          secondary: '',
-          success: '',
-          info: '',
-          warning: '',
-          error: '',
-          neutral: ''
-        },
-        active: {
+        fullscreen: {
           true: {
-            item: 'text-highlighted before:bg-elevated',
-            itemLeadingIcon: 'text-default'
+            content: 'inset-0'
           },
           false: {
-            item: [
-              'text-default data-highlighted:text-highlighted data-[state=open]:text-highlighted data-highlighted:before:bg-elevated/50 data-[state=open]:before:bg-elevated/50',
-              'transition-colors before:transition-colors'
-            ],
-            itemLeadingIcon: [
-              'text-dimmed group-data-highlighted:text-default group-data-[state=open]:text-default',
-              'transition-colors'
-            ]
-          }
-        },
-        loading: {
-          true: {
-            itemLeadingIcon: 'animate-spin'
-          }
-        },
-        size: {
-          xs: {
-            label: 'p-1 text-xs gap-1',
-            item: 'p-1 text-xs gap-1',
-            itemLeadingIcon: 'size-4',
-            itemLeadingAvatarSize: '3xs',
-            itemTrailingIcon: 'size-4',
-            itemTrailingKbds: 'gap-0.5',
-            itemTrailingKbdsSize: 'sm'
-          },
-          sm: {
-            label: 'p-1.5 text-xs gap-1.5',
-            item: 'p-1.5 text-xs gap-1.5',
-            itemLeadingIcon: 'size-4',
-            itemLeadingAvatarSize: '3xs',
-            itemTrailingIcon: 'size-4',
-            itemTrailingKbds: 'gap-0.5',
-            itemTrailingKbdsSize: 'sm'
-          },
-          md: {
-            label: 'p-1.5 text-sm gap-1.5',
-            item: 'p-1.5 text-sm gap-1.5',
-            itemLeadingIcon: 'size-5',
-            itemLeadingAvatarSize: '2xs',
-            itemTrailingIcon: 'size-5',
-            itemTrailingKbds: 'gap-0.5',
-            itemTrailingKbdsSize: 'md'
-          },
-          lg: {
-            label: 'p-2 text-sm gap-2',
-            item: 'p-2 text-sm gap-2',
-            itemLeadingIcon: 'size-5',
-            itemLeadingAvatarSize: '2xs',
-            itemTrailingIcon: 'size-5',
-            itemTrailingKbds: 'gap-1',
-            itemTrailingKbdsSize: 'md'
-          },
-          xl: {
-            label: 'p-2 text-base gap-2',
-            item: 'p-2 text-base gap-2',
-            itemLeadingIcon: 'size-6',
-            itemLeadingAvatarSize: 'xs',
-            itemTrailingIcon: 'size-6',
-            itemTrailingKbds: 'gap-1',
-            itemTrailingKbdsSize: 'lg'
+            content: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] rounded-lg shadow-lg ring ring-default'
           }
         }
-      },
-      compoundVariants: [
-        {
-          color: 'primary',
-          active: false,
-          class: {
-            item: 'text-primary data-highlighted:text-primary data-highlighted:before:bg-primary/10 data-[state=open]:before:bg-primary/10',
-            itemLeadingIcon: 'text-primary/75 group-data-highlighted:text-primary group-data-[state=open]:text-primary'
-          }
-        },
-        {
-          color: 'primary',
-          active: true,
-          class: {
-            item: 'text-primary before:bg-primary/10',
-            itemLeadingIcon: 'text-primary'
-          }
-        }
-      ],
-      defaultVariants: {
-        size: 'md'
       }
     }
   }

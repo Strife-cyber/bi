@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-300">
-    <Header/>
+    <Header />
 
     <div class="pt-20">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -53,32 +53,180 @@
                 <UButton
                   @click="showNewAnalysisModal = true"
                   color="success"
-                  class="hover-scale p-2 border-1 border-green-400 cursor-pointer"
-                >
-                  <UIcon name="i-heroicons-plus" class="w-4 h-4 mr-2" />
-                  Nouvelle Analyse
-                </UButton>
+                  icon="i-heroicons-plus"
+                  label="Nouvelle Analyse"
+                  class="hover-scale cursor-pointer"
+                />
                 
-                <UDropdownMenu
-                  :items="projectActions"
-                >
-                  <UButton  label="Open" icon="i-lucide-menu" color="neutral" variant="outline"></UButton>
+                <UDropdownMenu :items="projectActions">
+                  <UButton icon="i-lucide-menu" color="neutral" variant="outline" class="cursor-pointer" />
                 </UDropdownMenu>
               </div>
             </div>
           </div>
           
           <!-- Project Content Tabs -->
-          <UTabs :items="tabItems" :default-value="0" class="animate-fade-in-up">
-            <!-- TODO Place project content here -->
+          <UTabs :items="tabItems" class="animate-fade-in-up">
+            <template #content="{ item }">
+              <div v-if="item.value === 0" class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div v-for="(stat, index) in projectStats" :key="index" 
+                    class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow hover:shadow-md transition-shadow card-hover">
+                    <div class="flex items-center">
+                      <div :class="stat.bgColor" class="p-3 rounded-lg mr-4">
+                        <UIcon :name="stat.icon" class="w-8 h-8" :class="stat.iconColor" />
+                      </div>
+                      <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ stat.label }}</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ stat.value }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Dernières analyses</h2>
+                  <div class="space-y-4">
+                    <div v-for="(analysis, index) in project.analysis.slice(0, 3)" :key="index" 
+                      class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors cursor-pointer"
+                      @click="viewAnalysis(index)">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <h3 class="font-medium text-gray-900 dark:text-white">Analyse #{{ index + 1 }}</h3>
+                          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {{ formatDate(analysis.createdAt) }} • {{ analysis.files.length }} fichiers
+                          </p>
+                        </div>
+                        <div>
+                          <UBadge 
+                            :color="getAnalysisStatusColor(analysis)" 
+                            variant="soft"
+                          >
+                            {{ getAnalysisStatusText(analysis) }}
+                          </UBadge>
+                        </div>
+                      </div>
+                      <div class="mt-3 flex gap-2 overflow-x-auto pb-2">
+                        <div v-for="(file, fileIndex) in analysis.files.slice(0, 4)" :key="fileIndex" 
+                          class="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700">
+                          <!--<img v-if="!isVideo(file)" :src="file" class="w-full h-full object-cover" />
+                          <div v-else class="w-full h-full flex items-center justify-center">
+                            <UIcon name="i-heroicons-film" class="w-6 h-6 text-gray-400" />
+                          </div>-->
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-else-if="item.value === 1" class="p-4">
+                <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <UInput 
+                    v-model="analysisSearchQuery" 
+                    placeholder="Rechercher des analyses..." 
+                    icon="i-heroicons-magnifying-glass"
+                    class="max-w-md"
+                  />
+                  
+                  <USelect 
+                    v-model="analysisSortBy" 
+                    :options="sortOptions" 
+                    class="min-w-[200px]"
+                  />
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div v-for="(analysis, index) in filteredAnalyses" :key="index"
+                    class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow hover:shadow-md transition-shadow cursor-pointer card-hover"
+                    @click="viewAnalysis(index)">
+                    <div class="relative aspect-video bg-gray-100 dark:bg-gray-700">
+                      <!--<img 
+                        v-if="!isVideo(analysis.files[0])" 
+                        :src="analysis.files[0]" 
+                        class="w-full h-full object-cover"
+                      />
+                      <div v-else class="w-full h-full flex items-center justify-center">
+                        <UIcon name="i-heroicons-film" class="w-12 h-12 text-gray-400" />
+                      </div>-->
+                      <div class="absolute top-3 right-3">
+                        <UBadge 
+                          :color="getAnalysisStatusColor(analysis)" 
+                          variant="soft"
+                        >
+                          {{ getAnalysisStatusText(analysis) }}
+                        </UBadge>
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-1">Analyse #{{ index + 1 }}</h3>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                        {{ formatDate(analysis.createdAt) }} • {{ analysis.files.length }} fichiers
+                      </p>
+                      <div class="flex justify-between items-center">
+                        <div>
+                          <p class="text-xs text-gray-500 dark:text-gray-400">Défauts détectés</p>
+                          <p class="font-semibold text-gray-900 dark:text-white">
+                            {{ analysis.result?.defects || 0 }}
+                          </p>
+                        </div>
+                        <UButton 
+                          icon="i-heroicons-eye" 
+                          color="neutral" 
+                          variant="ghost"
+                          @click.stop="viewAnalysis(index)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-else class="p-4">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Rapports du projet</h2>
+                  <div class="space-y-4">
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex justify-between items-center">
+                      <div>
+                        <h3 class="font-medium text-gray-900 dark:text-white">Rapport complet</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Toutes les analyses combinées dans un seul document
+                        </p>
+                      </div>
+                      <UButton 
+                        icon="i-heroicons-arrow-down-tray" 
+                        color="success"
+                        label="Télécharger"
+                      />
+                    </div>
+                    
+                    <div v-for="(analysis, index) in project.analysis" :key="index"
+                      class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex justify-between items-center">
+                      <div>
+                        <h3 class="font-medium text-gray-900 dark:text-white">Analyse #{{ index + 1 }}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {{ formatDate(analysis.createdAt) }} • {{ analysis.files.length }} fichiers
+                        </p>
+                      </div>
+                      <UButton 
+                        icon="i-heroicons-arrow-down-tray" 
+                        color="neutral"
+                        variant="outline"
+                        label="Télécharger"
+                        @click="downloadAnalysisReport(analysis)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
           </UTabs>
         </div>
       </div>
     </div>
     
     <!-- Analysis Detail Modal -->
-    <UModal v-model:open="showAnalysisModal" class="max-w-5xl">
-      <UCard>
+    <UModal v-model:open="showAnalysisModal" class="sm:max-w-5xl">
         <template #header>
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -88,162 +236,162 @@
               @click="showAnalysisModal = false"
               color="neutral"
               variant="ghost"
-              size="sm"
-            >
-              <UIcon name="i-heroicons-x-mark" class="w-4 h-4" />
-            </UButton>
+              icon="i-heroicons-x-mark"
+              class="rounded-full"
+            />
           </div>
         </template>
         
-        <div v-if="selectedAnalysis" class="space-y-6">
-          <!-- Analysis Info -->
-          <div class="flex flex-wrap gap-4 text-sm">
-            <div class="flex items-center">
-              <UIcon name="i-heroicons-calendar" class="w-4 h-4 mr-2 text-gray-500" />
-              <span>{{ formatDate(selectedAnalysis.createdAt) }}</span>
-            </div>
-            <div class="flex items-center">
-              <UIcon name="i-heroicons-photo" class="w-4 h-4 mr-2 text-gray-500" />
-              <span>{{ selectedAnalysis.files.length }} fichiers</span>
-            </div>
-            <div class="flex items-center">
-              <UIcon name="i-heroicons-shield-exclamation" class="w-4 h-4 mr-2 text-gray-500" />
-              <span>{{ selectedAnalysis.result?.defects || 0 }} défauts détectés</span>
-            </div>
-          </div>
-          
-          <!-- Media Carousel -->
-          <div class="relative bg-gray-100 dark:bg-gray-850 rounded-lg overflow-hidden">
-            <!-- Carousel -->
-            <div class="relative">
-              <!-- Main Carousel -->
-              <div class="aspect-video relative overflow-hidden rounded-lg">
-                <div 
-                  v-for="(file, fileIndex) in selectedAnalysis.files" 
-                  :key="fileIndex"
-                  class="absolute inset-0 transition-opacity duration-300"
-                  :class="fileIndex === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'"
-                >
-                  <!-- Video -->
-                  <!--<video 
-                    v-if="isVideo(file!)" 
-                    class="w-full h-full object-contain"
-                    controls
-                    :src="file"
-                  ></video>-->
-                  
-                  <!-- Image -->
-                  <!--<img 
-                    v-else 
-                    :src="file" 
-                    :alt="`Analyse ${selectedAnalysisIndex + 1} - Image ${fileIndex + 1}`"
-                    class="w-full h-full object-contain"
-                  />-->
+        <template #content>
+            <div v-if="selectedAnalysis" class="space-y-6">
+                <!-- Analysis Info -->
+                <div class="flex flex-wrap gap-4 text-sm">
+                    <div class="flex items-center">
+                    <UIcon name="i-heroicons-calendar" class="w-4 h-4 mr-2 text-gray-500" />
+                    <span>{{ formatDate(selectedAnalysis.createdAt) }}</span>
+                    </div>
+                    <div class="flex items-center">
+                    <UIcon name="i-heroicons-photo" class="w-4 h-4 mr-2 text-gray-500" />
+                    <span>{{ selectedAnalysis.files.length }} fichiers</span>
+                    </div>
+                    <div class="flex items-center">
+                    <UIcon name="i-heroicons-shield-exclamation" class="w-4 h-4 mr-2 text-gray-500" />
+                    <span>{{ selectedAnalysis.result?.defects || 0 }} défauts détectés</span>
+                    </div>
                 </div>
-              </div>
-              
-              <!-- Navigation Arrows -->
-              <button 
-                v-if="selectedAnalysis.files.length > 1"
-                @click="prevSlide" 
-                class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors duration-200 hover-scale"
-                aria-label="Image précédente"
-              >
-                <UIcon name="i-heroicons-chevron-left" class="w-5 h-5" />
-              </button>
-              
-              <button 
-                v-if="selectedAnalysis.files.length > 1"
-                @click="nextSlide" 
-                class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors duration-200 hover-scale"
-                aria-label="Image suivante"
-              >
-                <UIcon name="i-heroicons-chevron-right" class="w-5 h-5" />
-              </button>
-              
-              <!-- Slide Counter -->
-              <div 
-                v-if="selectedAnalysis.files.length > 1"
-                class="absolute bottom-4 right-4 bg-black/50 text-white text-xs px-2 py-1 rounded-md"
-              >
-                {{ currentSlide + 1 }} / {{ selectedAnalysis.files.length }}
-              </div>
-            </div>
-            
-            <!-- Thumbnails -->
-            <div 
-              v-if="selectedAnalysis.files.length > 1"
-              class="flex gap-2 mt-4 overflow-x-auto pb-2 px-2"
-            >
-              <button
-                v-for="(file, fileIndex) in selectedAnalysis.files"
-                :key="fileIndex"
-                @click="currentSlide = fileIndex"
-                class="relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden transition-all duration-200 hover-scale"
-                :class="fileIndex === currentSlide ? 'ring-2 ring-emerald-500' : 'opacity-70'"
-              >
-                <!-- Video Thumbnail -->
-                <!--<div v-if="isVideo(file)" class="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <UIcon name="i-heroicons-film" class="w-8 h-8 text-gray-500 dark:text-gray-400" />
-                </div>-->
                 
-                <!-- Image Thumbnail -->
-                <!--<img 
-                  v-else 
-                  :src="file" 
-                  :alt="`Thumbnail ${fileIndex + 1}`"
-                  class="w-full h-full object-cover"
-                />-->
-              </button>
-            </div>
-          </div>
-          
-          <!-- Analysis Results -->
-          <div v-if="selectedAnalysis.result" class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4">
-            <h4 class="font-medium text-gray-900 dark:text-white mb-3">Résultats de l'analyse</h4>
-            
-            <div class="space-y-3">
-              <!-- Defects -->
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Défauts détectés</span>
-                <UBadge 
-                  :color="getDefectSeverityColor(selectedAnalysis.result.defects)" 
-                  variant="soft"
-                >
-                  {{ selectedAnalysis.result.defects || 0 }}
-                </UBadge>
-              </div>
-              
-              <!-- Severity -->
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Niveau de sévérité</span>
-                <UBadge 
-                  :color="getSeverityColor(selectedAnalysis.result.severity)" 
-                  variant="soft"
-                >
-                  {{ getSeverityText(selectedAnalysis.result.severity) }}
-                </UBadge>
-              </div>
-              
-              <!-- Progress Bar -->
-              <div>
-                <div class="flex items-center justify-between text-sm mb-1">
-                  <span class="text-gray-600 dark:text-gray-400">État de la structure</span>
-                  <span class="font-medium text-gray-900 dark:text-white">
-                    {{ getStructureHealthPercent(selectedAnalysis.result) }}%
-                  </span>
+                <!-- Media Carousel -->
+                <div class="relative bg-gray-100 dark:bg-gray-850 rounded-lg overflow-hidden">
+                    <div class="relative">
+                    <!-- Main Carousel -->
+                    <div class="aspect-video relative overflow-hidden rounded-lg">
+                        <div 
+                        v-for="(file, fileIndex) in selectedAnalysis.files" 
+                        :key="fileIndex"
+                        class="absolute inset-0 transition-opacity duration-300"
+                        :class="fileIndex === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'"
+                        >
+                        <!-- Video -->
+                        <!--<video 
+                            v-if="isVideo(file)" 
+                            class="w-full h-full object-contain"
+                            controls
+                            :src="file"
+                        ></video>
+                        
+                        </!-- Image --/>
+                        <img 
+                            v-else 
+                            :src="file" 
+                            :alt="`Analyse ${selectedAnalysisIndex + 1} - Image ${fileIndex + 1}`"
+                            class="w-full h-full object-contain"
+                        />-->
+                        </div>
+                    </div>
+                    
+                    <!-- Navigation Arrows -->
+                    <button 
+                        v-if="selectedAnalysis.files.length > 1"
+                        @click="prevSlide" 
+                        class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors duration-200 hover-scale"
+                        aria-label="Image précédente"
+                    >
+                        <UIcon name="i-heroicons-chevron-left" class="w-5 h-5" />
+                    </button>
+                    
+                    <button 
+                        v-if="selectedAnalysis.files.length > 1"
+                        @click="nextSlide" 
+                        class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors duration-200 hover-scale"
+                        aria-label="Image suivante"
+                    >
+                        <UIcon name="i-heroicons-chevron-right" class="w-5 h-5" />
+                    </button>
+                    
+                    <!-- Slide Counter -->
+                    <div 
+                        v-if="selectedAnalysis.files.length > 1"
+                        class="absolute bottom-4 right-4 bg-black/50 text-white text-xs px-2 py-1 rounded-md"
+                    >
+                        {{ currentSlide + 1 }} / {{ selectedAnalysis.files.length }}
+                    </div>
+                    </div>
+                    
+                    <!-- Thumbnails -->
+                    <div 
+                    v-if="selectedAnalysis.files.length > 1"
+                    class="flex gap-2 mt-4 overflow-x-auto pb-2 px-2"
+                    >
+                    <button
+                        v-for="(file, fileIndex) in selectedAnalysis.files"
+                        :key="fileIndex"
+                        @click="currentSlide = fileIndex"
+                        class="relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden transition-all duration-200 hover-scale"
+                        :class="fileIndex === currentSlide ? 'ring-2 ring-emerald-500' : 'opacity-70'"
+                    >
+                        <!-- Video Thumbnail -->
+                        <!--<div v-if="isVideo(file)" class="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <UIcon name="i-heroicons-film" class="w-8 h-8 text-gray-500 dark:text-gray-400" />
+                        </div>
+                        
+                        <!/-- Image Thumbnail --/>
+                        <img 
+                        v-else 
+                        :src="file" 
+                        :alt="`Thumbnail ${fileIndex + 1}`"
+                        class="w-full h-full object-cover"
+                        />-->
+                    </button>
+                    </div>
                 </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    class="h-2 rounded-full transition-all duration-500 animate-glow"
-                    :class="getStructureHealthColor(selectedAnalysis.result)"
-                    :style="`width: ${getStructureHealthPercent(selectedAnalysis.result)}%`"
-                  ></div>
+                
+                <!-- Analysis Results -->
+                <div v-if="selectedAnalysis.result" class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4">
+                    <h4 class="font-medium text-gray-900 dark:text-white mb-3">Résultats de l'analyse</h4>
+                    
+                    <div class="space-y-3">
+                    <!-- Defects -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Défauts détectés</span>
+                        <UBadge 
+                        :color="getDefectSeverityColor(selectedAnalysis.result.defects)" 
+                        variant="soft"
+                        >
+                        {{ selectedAnalysis.result.defects || 0 }}
+                        </UBadge>
+                    </div>
+                    
+                    <!-- Severity -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Niveau de sévérité</span>
+                        <UBadge 
+                        :color="getSeverityColor(selectedAnalysis.result.severity)" 
+                        variant="soft"
+                        >
+                        {{ getSeverityText(selectedAnalysis.result.severity) }}
+                        </UBadge>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div>
+                        <div class="flex items-center justify-between text-sm mb-1">
+                        <span class="text-gray-600 dark:text-gray-400">État de la structure</span>
+                        <span class="font-medium text-gray-900 dark:text-white">
+                            {{ getStructureHealthPercent(selectedAnalysis.result) }}%
+                        </span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div 
+                            class="h-2 rounded-full transition-all duration-500 animate-glow"
+                            :class="getStructureHealthColor(selectedAnalysis.result)"
+                            :style="`width: ${getStructureHealthPercent(selectedAnalysis.result)}%`"
+                        ></div>
+                        </div>
+                    </div>
+                    </div>
                 </div>
-              </div>
             </div>
-          </div>
-        </div>
+        </template>
         
         <template #footer>
           <div class="flex justify-between">
@@ -251,129 +399,113 @@
               @click="downloadAnalysisReport(selectedAnalysis!)"
               color="neutral"
               variant="soft"
-            >
-              <UIcon name="i-heroicons-arrow-down-tray" class="w-4 h-4 mr-2" />
-              Télécharger le rapport
-            </UButton>
+              icon="i-heroicons-arrow-down-tray"
+              label="Télécharger le rapport"
+            />
             
             <UButton
               @click="showAnalysisModal = false"
               color="success"
-            >
-              Fermer
-            </UButton>
+              label="Fermer"
+            />
           </div>
         </template>
-      </UCard>
     </UModal>
     
     <!-- New Analysis Modal -->
-    <UModal v-model:open="showNewAnalysisModal">
-      <UCard>
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-              Nouvelle Analyse
-            </h3>
-            <UButton
-              @click="showNewAnalysisModal = false"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-            >
-              <UIcon name="i-heroicons-x-mark" class="w-4 h-4" />
-            </UButton>
-          </div>
-        </template>
-        
+    <UModal 
+      v-model:open="showNewAnalysisModal" 
+      title="Nouvelle Analyse"
+      :overlay="true"
+      :key="showNewAnalysisModal ? 'open': 'closed'"
+    >
+      <template #close @click="showNewAnalysisModal = false">
+      </template>
+      <template #body>
         <div class="space-y-4">
-          <!-- File Upload -->
-          <div class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
-            <UIcon name="i-heroicons-cloud-arrow-up" class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
-            
-            <h4 class="text-base font-medium text-gray-900 dark:text-white mb-2">
-              Déposez vos fichiers ici
-            </h4>
-            
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Formats supportés: JPG, PNG, MP4, MOV (max 50MB)
-            </p>
-            
-            <UButton color="success" class="hover-scale">
-              <UIcon name="i-heroicons-photo" class="w-4 h-4 mr-2" />
-              Sélectionner des fichiers
-            </UButton>
-          </div>
-          
-          <!-- Selected Files Preview -->
-          <div v-if="newAnalysisFiles.length > 0" class="space-y-2">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white">
-              Fichiers sélectionnés ({{ newAnalysisFiles.length }})
-            </h4>
-            
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              <div 
-                v-for="(file, index) in newAnalysisFiles" 
-                :key="index"
-                class="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden group"
-              >
-                <!-- File Preview -->
-                <!--<img 
-                  :src="URL.createObjectURL(file)" 
-                  :alt="`Preview ${index}`"
-                  class="w-full h-full object-cover"
-                />-->
+            <!-- File Upload -->
+            <UFormField name="files" required>
+                <div class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                <UIcon name="i-heroicons-cloud-arrow-up" class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
                 
-                <!-- Remove Button -->
-                <button
-                  @click="removeFile(index)"
-                  class="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  aria-label="Supprimer"
-                >
-                  <UIcon name="i-heroicons-x-mark" class="w-3 h-3" />
-                </button>
+                <h4 class="text-base font-medium text-gray-900 dark:text-white mb-2">
+                    Déposez vos fichiers ici
+                </h4>
+                
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Formats supportés: JPG, PNG, MP4, MOV (max 50MB)
+                </p>
+                
+                <UInput 
+                    type="file" 
+                    multiple 
+                    accept="image/*,video/*"
+                    @change="handleFileUpload"
+                    class="cursor-pointer gap-4 text-gray-600 text-wrap whitespace-nowrap"
+                    ref="fileInput"
+                    placeholder="Sélectionner des fichiers"
+                />
               </div>
+            </UFormField>
+            
+            <!-- Selected Files Preview -->
+            <div v-if="newAnalysisFiles.length > 0" class="space-y-2">
+                <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                Fichiers sélectionnés ({{ newAnalysisFiles.length }})
+                </h4>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <div 
+                    v-for="(file, index) in newAnalysisFiles" 
+                    :key="index"
+                    class="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden group"
+                >
+                    <!-- File Preview -->
+                    <img 
+                      v-if="file.type.startsWith('image')" 
+                      :src="file.preview" 
+                      class="w-full h-full object-cover"
+                    />
+                    <div 
+                      v-else 
+                      class="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700"
+                    >
+                      <UIcon name="i-heroicons-film" class="w-8 h-8 text-gray-500" />
+                    </div>
+                    
+                    <!-- Remove Button -->
+                    <button
+                    @click="removeFile(index)"
+                    class="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    aria-label="Supprimer"
+                    >
+                      <UIcon name="i-heroicons-x-mark" class="w-3 h-3" />
+                    </button>
+                </div>
+                </div>
             </div>
-          </div>
-          
-          <!-- Analysis Options -->
-          <UFormGroup label="Type d'analyse">
-            <USelect
-              v-model="newAnalysisType"
-              :options="analysisTypes"
-              placeholder="Sélectionner le type d'analyse"
-            />
-          </UFormGroup>
-          
-          <UFormGroup label="Notes (optionnel)">
-            <UTextarea
-              v-model="newAnalysisNotes"
-              placeholder="Ajoutez des notes ou des observations..."
-            />
-          </UFormGroup>
         </div>
-        
-        <template #footer>
-          <div class="flex justify-end space-x-3">
-            <UButton
-              @click="showNewAnalysisModal = false"
-              color="neutral"
-              variant="ghost"
-            >
-              Annuler
-            </UButton>
-            <UButton
-              @click="createAnalysis"
-              color="success"
-              :loading="creatingAnalysis"
-              :disabled="newAnalysisFiles.length === 0"
-            >
-              <UIcon name="i-heroicons-rocket-launch" class="w-4 h-4 mr-2" />
-              Lancer l'analyse
-            </UButton>
-          </div>
-        </template>
-      </UCard>
+      </template>
+      <template #footer>
+        <div class="flex justify-end space-x-3">
+          <UButton
+            @click="showNewAnalysisModal = false"
+            color="neutral"
+            variant="ghost"
+            label="Annuler"
+            class="cursor-pointer"
+          />
+          <UButton
+            @click="createAnalysis"
+            color="success"
+            :loading="creatingAnalysis"
+            :disabled="newAnalysisFiles.length === 0 || !newAnalysisType"
+            icon="i-heroicons-rocket-launch"
+            label="Lancer l'analyse"
+            class="cursor-pointer"
+          />
+        </div>
+      </template>
     </UModal>
   </div>
 </template>
@@ -397,19 +529,19 @@ const currentSlide = ref(0)
 const analysisSearchQuery = ref('')
 const analysisSortBy = ref('newest')
 const creatingAnalysis = ref(false)
-const newAnalysisFiles = ref<File[]>([])
+const newAnalysisFiles = ref<any[]>([])
 const newAnalysisType = ref('')
 const newAnalysisNotes = ref('')
 const project = ref<Project | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 
 // Initialize project data
 watch(user, async (newUser) => {
   if (newUser) {
     initialize(newUser.uid)
     project.value = await getProjectById(projectId.value)
-    console.log(project.value);
   }
-})
+}, { immediate: true })
 
 // Computed
 const selectedAnalysis = computed(() => {
@@ -431,9 +563,9 @@ const filteredAnalyses = computed(() => {
   
   // Apply search filter if needed
   if (analysisSearchQuery.value) {
-    // This is a placeholder - in a real app you'd search through analysis metadata
     analyses = analyses.filter(a => 
       a.files.some(f => f.toLowerCase().includes(analysisSearchQuery.value.toLowerCase()))
+      // a.notes?.toLowerCase().includes(analysisSearchQuery.value.toLowerCase())
     )
   }
   
@@ -591,12 +723,28 @@ const prevSlide = () => {
   currentSlide.value = (currentSlide.value - 1 + selectedAnalysis.value.files.length) % selectedAnalysis.value.files.length
 }
 
+const handleFileUpload = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  if (!input.files || input.files.length === 0) return
+  
+  Array.from(input.files).forEach(file => {
+    if (!file.type.match('image.*|video.*')) return
+    
+    newAnalysisFiles.value.push({
+      file,
+      preview: URL.createObjectURL(file),
+      type: file.type.split('/')[0]
+    })
+  })
+}
+
 const removeFile = (index: number) => {
+  URL.revokeObjectURL(newAnalysisFiles.value[index].preview)
   newAnalysisFiles.value.splice(index, 1)
 }
 
 const createAnalysis = async () => {
-  if (newAnalysisFiles.value.length === 0 || !project.value) return
+  if (newAnalysisFiles.value.length === 0 || !newAnalysisType.value || !project.value) return
   
   creatingAnalysis.value = true
   
@@ -604,12 +752,9 @@ const createAnalysis = async () => {
     // Mock API call
     await new Promise(resolve => setTimeout(resolve, 2000))
     
-    // In a real app, you would upload files and process them
-    const fileUrls = newAnalysisFiles.value.map(file => URL.createObjectURL(file))
-    
     // Create new analysis
     const newAnalysis: Analysis = {
-      files: fileUrls,
+      files: newAnalysisFiles.value.map(f => f.preview),
       result: { 
         defects: Math.floor(Math.random() * 5), 
         severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
@@ -624,15 +769,13 @@ const createAnalysis = async () => {
     project.value.updatedAt = new Date()
     
     // Reset form
+    newAnalysisFiles.value.forEach(file => URL.revokeObjectURL(file.preview))
     newAnalysisFiles.value = []
     newAnalysisType.value = ''
     newAnalysisNotes.value = ''
     
     // Close modal
     showNewAnalysisModal.value = false
-    
-    // Show success notification
-    console.log('Analyse créée avec succès!')
     
   } catch (e) {
     console.error('Error creating analysis:', e)
@@ -722,3 +865,23 @@ const isVideo = (url: string) => {
          url.includes('youtu.be')
 }
 </script>
+
+<style scoped>
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 0 0 30px rgba(16, 185, 129, 0.6); }
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+</style>
