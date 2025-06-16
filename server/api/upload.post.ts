@@ -3,14 +3,14 @@ import path from "path";
 
 export default defineEventHandler(async (event) => {
   // Define allowed file types (MIME types)
-  const allowedMimeTypes = [
+  /*const allowedMimeTypes = [
     'image/jpeg',
     'image/png',
     'image/gif',
     'video/mp4',
     'video/webm',
     'video/ogg'
-  ];
+  ];*/
 
   const formData = await readMultipartFormData(event);
 
@@ -26,12 +26,12 @@ export default defineEventHandler(async (event) => {
   }
 
   // --- SECURITY: Validate the file's MIME type ---
-  if (!allowedMimeTypes.includes(file.type!)) {
+  /*if (!allowedMimeTypes.includes(file.type!)) {
     throw createError({
       statusCode: 415, // Unsupported Media Type
       statusMessage: `Unsupported file type. Please upload one of: ${allowedMimeTypes.join(', ')}`,
     });
-  }
+  }*/
 
   const uploadDir = path.join(process.cwd(), 'public/uploads');
 

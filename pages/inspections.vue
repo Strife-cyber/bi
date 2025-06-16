@@ -189,7 +189,7 @@ const loadingMore = ref(false)
 const hasMoreProjects = ref(false)
 
 const { user } = useAuth();
-const { initialize, getProjects, createProject } = useProject();
+const { initialize, getProjects, createProject, getAnalysisForProject } = useProject();
 const { addNotification, initialize: initializeNotifications } = useNotifications();
 
 watch(user, async (newUser) => {
@@ -197,6 +197,13 @@ watch(user, async (newUser) => {
     initialize(newUser.uid);
     initializeNotifications(newUser.uid);
     projects.value = await getProjects();
+
+    const analysisPromises = projects.value.map(async (project) => {
+      project.analysis = await getAnalysisForProject(project.id);
+      return project;
+    });
+
+    projects.value = await Promise.all(analysisPromises);
   }
 })
 

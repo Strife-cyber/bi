@@ -94,8 +94,8 @@
 </template>
 
 <script setup lang="ts">
+import { format } from 'timeago.js'
 import type { Project } from '~/types'
-
 
 // Props
 const props = defineProps({
@@ -172,14 +172,10 @@ const getLastActivity = (project: Project) => {
   if (project.analysis.length === 0) return 'Aucune'
   
   const lastAnalysis = project.analysis.reduce((latest, current) => 
-    new Date(current.updatedAt) > new Date(latest.updatedAt) ? current : latest
+    current.updatedAt > latest.updatedAt ? current : latest
   )
-  
-  const daysDiff = Math.floor((Date.now() - new Date(lastAnalysis.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
-  
-  if (daysDiff === 0) return 'Aujourd\'hui'
-  if (daysDiff === 1) return 'Hier'
-  return `Il y a ${daysDiff} jours`
+
+  return format(lastAnalysis.updatedAt);
 }
 
 const getCompletionRate = (project: Project) => {

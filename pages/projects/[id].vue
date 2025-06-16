@@ -88,7 +88,7 @@
                   <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Dernières analyses</h2>
                   <div class="space-y-4">
                     <div v-for="(analysis, index) in project.analysis.slice(0, 3)" :key="index" 
-                      class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors cursor-pointer"
+                      class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                       @click="viewAnalysis(index)">
                       <div class="flex items-center justify-between">
                         <div>
@@ -106,13 +106,14 @@
                           </UBadge>
                         </div>
                       </div>
-                      <div class="mt-3 flex gap-2 overflow-x-auto pb-2">
-                        <div v-for="(file, fileIndex) in analysis.files.slice(0, 4)" :key="fileIndex" 
-                          class="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700">
-                          <!--<img v-if="!isVideo(file)" :src="file" class="w-full h-full object-cover" />
+                      <div class="mt-3 flex gap-2 overflow-x-auto pb-2 dark:hover:bg-gray-800">
+                        <div v-for="(file, fileIndex) in analysis.files.slice(0, 8)" :key="fileIndex" 
+                          class="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 dark:hover:bg-gray-800 dark:bg-gray-700">
+                        
+                          <img v-if="!isVideo(file as string)" :src="file as string" class="w-full h-full object-cover" />
                           <div v-else class="w-full h-full flex items-center justify-center">
                             <UIcon name="i-heroicons-film" class="w-6 h-6 text-gray-400" />
-                          </div>-->
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -158,8 +159,8 @@
                         </UBadge>
                       </div>
                     </div>
-                    <div class="p-4">
-                      <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-1">Analyse #{{ index + 1 }}</h3>
+                    <div class="p-4 dark:hover:bg-gray-800">
+                      <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-1">Analyse</h3>
                       <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
                         {{ formatDate(analysis.createdAt) }} • {{ analysis.files.length }} fichiers
                       </p>
@@ -201,7 +202,7 @@
                     </div>
                     
                     <div v-for="(analysis, index) in project.analysis" :key="index"
-                      class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex justify-between items-center">
+                      class="border border-gray-200 dark:border-gray-700 dark:hover:bg-gray-800 rounded-lg p-4 flex justify-between items-center">
                       <div>
                         <h3 class="font-medium text-gray-900 dark:text-white">Analyse #{{ index + 1 }}</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -226,190 +227,26 @@
     </div>
     
     <!-- Analysis Detail Modal -->
-    <UModal v-model:open="showAnalysisModal" class="sm:max-w-5xl">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-              Analyse #{{ selectedAnalysisIndex + 1 }}
-            </h3>
-            <UButton
-              @click="showAnalysisModal = false"
-              color="neutral"
-              variant="ghost"
-              icon="i-heroicons-x-mark"
-              class="rounded-full"
-            />
+    <UModal 
+      v-model:open="showAnalysisModal" 
+      class="sm:max-w-5xl"
+      :key="showAnalysisModal ? 'open': 'closed'"
+    >   
+      <template #content>
+        <UCarousel
+          v-slot="{ item }"
+          loop
+          dots
+          arrows
+          :items="selectedAnalysis?.files"
+          :ui="{ item: 'basis-1/3' }"
+        >
+          <div class="flex items-center justify-center">
+            <img v-if="!isVideo(item as string)" class="rounded-lg" :src="item as string">
+            <video v-else class="rounded-lg" :src="item as string" alt=""/>
           </div>
-        </template>
-        
-        <template #content>
-            <div v-if="selectedAnalysis" class="space-y-6">
-                <!-- Analysis Info -->
-                <div class="flex flex-wrap gap-4 text-sm">
-                    <div class="flex items-center">
-                    <UIcon name="i-heroicons-calendar" class="w-4 h-4 mr-2 text-gray-500" />
-                    <span>{{ formatDate(selectedAnalysis.createdAt) }}</span>
-                    </div>
-                    <div class="flex items-center">
-                    <UIcon name="i-heroicons-photo" class="w-4 h-4 mr-2 text-gray-500" />
-                    <span>{{ selectedAnalysis.files.length }} fichiers</span>
-                    </div>
-                    <div class="flex items-center">
-                    <UIcon name="i-heroicons-shield-exclamation" class="w-4 h-4 mr-2 text-gray-500" />
-                    <span>{{ selectedAnalysis.result?.defects || 0 }} défauts détectés</span>
-                    </div>
-                </div>
-                
-                <!-- Media Carousel -->
-                <div class="relative bg-gray-100 dark:bg-gray-850 rounded-lg overflow-hidden">
-                    <div class="relative">
-                    <!-- Main Carousel -->
-                    <div class="aspect-video relative overflow-hidden rounded-lg">
-                        <div 
-                        v-for="(file, fileIndex) in selectedAnalysis.files" 
-                        :key="fileIndex"
-                        class="absolute inset-0 transition-opacity duration-300"
-                        :class="fileIndex === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'"
-                        >
-                        <!-- Video -->
-                        <!--<video 
-                            v-if="isVideo(file)" 
-                            class="w-full h-full object-contain"
-                            controls
-                            :src="file"
-                        ></video>
-                        
-                        </!-- Image --/>
-                        <img 
-                            v-else 
-                            :src="file" 
-                            :alt="`Analyse ${selectedAnalysisIndex + 1} - Image ${fileIndex + 1}`"
-                            class="w-full h-full object-contain"
-                        />-->
-                        </div>
-                    </div>
-                    
-                    <!-- Navigation Arrows -->
-                    <button 
-                        v-if="selectedAnalysis.files.length > 1"
-                        @click="prevSlide" 
-                        class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors duration-200 hover-scale"
-                        aria-label="Image précédente"
-                    >
-                        <UIcon name="i-heroicons-chevron-left" class="w-5 h-5" />
-                    </button>
-                    
-                    <button 
-                        v-if="selectedAnalysis.files.length > 1"
-                        @click="nextSlide" 
-                        class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors duration-200 hover-scale"
-                        aria-label="Image suivante"
-                    >
-                        <UIcon name="i-heroicons-chevron-right" class="w-5 h-5" />
-                    </button>
-                    
-                    <!-- Slide Counter -->
-                    <div 
-                        v-if="selectedAnalysis.files.length > 1"
-                        class="absolute bottom-4 right-4 bg-black/50 text-white text-xs px-2 py-1 rounded-md"
-                    >
-                        {{ currentSlide + 1 }} / {{ selectedAnalysis.files.length }}
-                    </div>
-                    </div>
-                    
-                    <!-- Thumbnails -->
-                    <div 
-                    v-if="selectedAnalysis.files.length > 1"
-                    class="flex gap-2 mt-4 overflow-x-auto pb-2 px-2"
-                    >
-                    <button
-                        v-for="(file, fileIndex) in selectedAnalysis.files"
-                        :key="fileIndex"
-                        @click="currentSlide = fileIndex"
-                        class="relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden transition-all duration-200 hover-scale"
-                        :class="fileIndex === currentSlide ? 'ring-2 ring-emerald-500' : 'opacity-70'"
-                    >
-                        <!-- Video Thumbnail -->
-                        <!--<div v-if="isVideo(file)" class="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        <UIcon name="i-heroicons-film" class="w-8 h-8 text-gray-500 dark:text-gray-400" />
-                        </div>
-                        
-                        <!/-- Image Thumbnail --/>
-                        <img 
-                        v-else 
-                        :src="file" 
-                        :alt="`Thumbnail ${fileIndex + 1}`"
-                        class="w-full h-full object-cover"
-                        />-->
-                    </button>
-                    </div>
-                </div>
-                
-                <!-- Analysis Results -->
-                <div v-if="selectedAnalysis.result" class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4">
-                    <h4 class="font-medium text-gray-900 dark:text-white mb-3">Résultats de l'analyse</h4>
-                    
-                    <div class="space-y-3">
-                    <!-- Defects -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600 dark:text-gray-400">Défauts détectés</span>
-                        <UBadge 
-                        :color="getDefectSeverityColor(selectedAnalysis.result.defects)" 
-                        variant="soft"
-                        >
-                        {{ selectedAnalysis.result.defects || 0 }}
-                        </UBadge>
-                    </div>
-                    
-                    <!-- Severity -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600 dark:text-gray-400">Niveau de sévérité</span>
-                        <UBadge 
-                        :color="getSeverityColor(selectedAnalysis.result.severity)" 
-                        variant="soft"
-                        >
-                        {{ getSeverityText(selectedAnalysis.result.severity) }}
-                        </UBadge>
-                    </div>
-                    
-                    <!-- Progress Bar -->
-                    <div>
-                        <div class="flex items-center justify-between text-sm mb-1">
-                        <span class="text-gray-600 dark:text-gray-400">État de la structure</span>
-                        <span class="font-medium text-gray-900 dark:text-white">
-                            {{ getStructureHealthPercent(selectedAnalysis.result) }}%
-                        </span>
-                        </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                            class="h-2 rounded-full transition-all duration-500 animate-glow"
-                            :class="getStructureHealthColor(selectedAnalysis.result)"
-                            :style="`width: ${getStructureHealthPercent(selectedAnalysis.result)}%`"
-                        ></div>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </template>
-        
-        <template #footer>
-          <div class="flex justify-between">
-            <UButton
-              @click="downloadAnalysisReport(selectedAnalysis!)"
-              color="neutral"
-              variant="soft"
-              icon="i-heroicons-arrow-down-tray"
-              label="Télécharger le rapport"
-            />
-            
-            <UButton
-              @click="showAnalysisModal = false"
-              color="success"
-              label="Fermer"
-            />
-          </div>
-        </template>
+        </UCarousel>          
+      </template>
     </UModal>
     
     <!-- New Analysis Modal -->
@@ -499,7 +336,7 @@
             @click="createAnalysis"
             color="success"
             :loading="creatingAnalysis"
-            :disabled="newAnalysisFiles.length === 0 || !newAnalysisType"
+            :disabled="newAnalysisFiles.length === 0"
             icon="i-heroicons-rocket-launch"
             label="Lancer l'analyse"
             class="cursor-pointer"
@@ -521,7 +358,7 @@ const projectId = computed(() => route.params.id as string)
 
 // State
 const { user } = useAuth()
-const { initialize, getProjectById } = useProject()
+const { initialize, getProjectById, addAnalysis, getAnalysisForProject } = useProject()
 const showAnalysisModal = ref(false)
 const showNewAnalysisModal = ref(false)
 const selectedAnalysisIndex = ref(0)
@@ -529,8 +366,11 @@ const currentSlide = ref(0)
 const analysisSearchQuery = ref('')
 const analysisSortBy = ref('newest')
 const creatingAnalysis = ref(false)
-const newAnalysisFiles = ref<any[]>([])
-const newAnalysisType = ref('')
+const newAnalysisFiles = ref<{
+  file: File,
+  preview: string,
+  type: string
+}[]>([]);
 const newAnalysisNotes = ref('')
 const project = ref<Project | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -538,8 +378,11 @@ const fileInput = ref<HTMLInputElement | null>(null)
 // Initialize project data
 watch(user, async (newUser) => {
   if (newUser) {
-    initialize(newUser.uid)
-    project.value = await getProjectById(projectId.value)
+    initialize(newUser.uid);
+    project.value = await getProjectById(projectId.value);
+    if (project.value) {
+      project.value.analysis = await getAnalysisForProject(projectId.value);
+    }
   }
 }, { immediate: true })
 
@@ -565,7 +408,6 @@ const filteredAnalyses = computed(() => {
   if (analysisSearchQuery.value) {
     analyses = analyses.filter(a => 
       a.files.some(f => f.toLowerCase().includes(analysisSearchQuery.value.toLowerCase()))
-      // a.notes?.toLowerCase().includes(analysisSearchQuery.value.toLowerCase())
     )
   }
   
@@ -692,14 +534,6 @@ const sortOptions = [
   { label: 'Sévérité', value: 'severity' }
 ]
 
-// Analysis types
-const analysisTypes = [
-  { label: 'Détection de fissures', value: 'crack-detection' },
-  { label: 'Analyse thermique', value: 'thermal-analysis' },
-  { label: 'Inspection structurelle', value: 'structural-inspection' },
-  { label: 'Détection d\'humidité', value: 'moisture-detection' }
-]
-
 // Methods
 const viewAnalysis = (index: number) => {
   selectedAnalysisIndex.value = index
@@ -744,39 +578,71 @@ const removeFile = (index: number) => {
 }
 
 const createAnalysis = async () => {
-  if (newAnalysisFiles.value.length === 0 || !newAnalysisType.value || !project.value) return
+  if (newAnalysisFiles.value.length === 0 || !project.value) return
   
   creatingAnalysis.value = true
   
   try {
-    // Mock API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
+    const uploadPromises = newAnalysisFiles.value.map((analysisFile) => {
+      const formData = new FormData();
+      formData.append('file', analysisFile.file);
+
+      return fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error(await res.text());
+          const data = await res.json();
+          return data.fileUrl;
+        })
+        .catch((err) => {
+          console.log(`Erreur : ${err.message}`);
+          return null; // skip failed upload
+        });
+    });
+
+    const files = (await Promise.all(uploadPromises)).filter((f) => f !== null) as string[];
+
     // Create new analysis
     const newAnalysis: Analysis = {
-      files: newAnalysisFiles.value.map(f => f.preview),
-      result: { 
-        defects: Math.floor(Math.random() * 5), 
-        severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-        health: Math.floor(Math.random() * 30) + 70
-      },
+      files,
+      result: {},
       createdAt: new Date(),
       updatedAt: new Date()
     }
     
+    console.log(newAnalysis);
+    
+    await addAnalysis(project.value.id, newAnalysis);
+
+    await fetch('/api/jobs.create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        type: 'Analysis',
+        data: {
+          files,
+          result: {},
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        user: user.value?.uid
+      })
+    });
+
     // Add to project
     project.value.analysis.unshift(newAnalysis)
-    project.value.updatedAt = new Date()
     
     // Reset form
     newAnalysisFiles.value.forEach(file => URL.revokeObjectURL(file.preview))
     newAnalysisFiles.value = []
-    newAnalysisType.value = ''
     newAnalysisNotes.value = ''
     
     // Close modal
     showNewAnalysisModal.value = false
-    
   } catch (e) {
     console.error('Error creating analysis:', e)
   } finally {
