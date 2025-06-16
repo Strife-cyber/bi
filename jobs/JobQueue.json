@@ -1,0 +1,26 @@
+[
+  {
+    "id": "740f1e22-42ff-4967-930b-e2578c01279b",
+    "type": "Analysis",
+    "data": {
+      "files": [
+        "/uploads/1750085725794-00a5a0ee-60ce-4589-9d06-b69b486d59f1_jpeg_jpg.rf.0dfe4fddbdd84dfd3214d958ba85dc97.jpg",
+        "/uploads/1750085725799-00a5a0ee-60ce-4589-9d06-b69b486d59f1_jpeg_jpg.rf.2c26954822c989133ae00dfc4c1f0a05.jpg",
+        "/uploads/1750085725799-00a5a0ee-60ce-4589-9d06-b69b486d59f1_jpeg_jpg.rf.4ec48fba667a46ebdbb7e09a0bcc149f.jpg",
+        "/uploads/1750085725804-00a5a0ee-60ce-4589-9d06-b69b486d59f1_jpeg_jpg.rf.5aa7c0402e904de9d428730745f52b5c.jpg",
+        "/uploads/1750085725794-00a5a0ee-60ce-4589-9d06-b69b486d59f1_jpeg_jpg.rf.5c3dcce2e4de2d488f66b5694d82e56b.jpg",
+        "/uploads/1750085725798-00a5a0ee-60ce-4589-9d06-b69b486d59f1_jpeg_jpg.rf.5ec626e9a1dbd394df98f83c47ed3db2.jpg",
+        "/uploads/1750085725877-OIP.webp",
+        "/uploads/1750085726142-1000_F_509125250_J9loszCqGrRHrbTLpmPsrsJb55ng8N2Y.jpg",
+        "/uploads/1750085725987-earthquake-insurance-value-980x735.jpg",
+        "/uploads/1750085725987-large-cracked-concrete-wall-a-broken-exterior-barrier-resulting-from-an-earthquake-s-impact-free-photo.jpg",
+        "/uploads/1750085725899-i-1.webp",
+        "/uploads/1750085726047-crack.jpg"
+      ],
+      "result": {},
+      "createdAt": "2025-06-16T14:55:27.241Z",
+      "updatedAt": "2025-06-16T14:55:27.241Z"
+    },
+    "status": "pending"
+  }
+]
