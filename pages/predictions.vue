@@ -239,6 +239,7 @@
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-6">
               <UTabs :items="buildingCodeTabs" class="w-full">
+                <!-- @vue-expect-error -->
                 <template #default="{ selectedIndex }">
                   <!-- Structural Codes -->
                   <div v-if="selectedIndex === 0" class="animate-fade-in">

@@ -28,6 +28,7 @@
     "form-data": "^4.0.3",
     "formidable": "^3.5.4",
     "fs": "^0.0.1-security",
+    "html2pdf.js": "^0.10.3",
     "nuxt": "^3.16.2",
     "proper-lockfile": "^4.1.2",
     "tailwindcss": "^4.1.8",

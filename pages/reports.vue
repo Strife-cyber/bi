@@ -129,6 +129,106 @@
                         </div>
                       </div>
 
+                      <!-- Project Report Details -->
+                      <div v-if="analysis.result" class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                          Détails des Détections
+                        </h4>
+                        
+                        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                              <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fichier</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Détections</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Résultats</th>
+                              </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                              <tr v-for="(result, index) in analysis.result" :key="index">
+                                <!-- File Preview -->
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                  <div class="relative group">
+                                    <!-- @vue-expect-error -->
+                                    <img 
+                                      v-if="result.type === 'image'"
+                                      :src="analysis.files[index]"
+                                      class="w-20 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                                    />
+                                    <div 
+                                      v-else
+                                      class="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center"
+                                    >
+                                      <UIcon name="i-heroicons-video-camera" class="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                                    </div>
+                                    <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                                      <UIcon name="i-heroicons-magnifying-glass-plus" class="w-6 h-6 text-white" />
+                                    </div>
+                                  </div>
+                                </td>
+                                
+                                <!-- Type -->
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                                        :class="result.type === 'image' 
+                                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' 
+                                          : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100'">
+                                    {{ result.type === 'image' ? 'Image' : 'Vidéo' }}
+                                  </span>
+                                </td>
+                                
+                                <!-- Detections -->
+                                <td class="px-4 py-3">
+                                  <div class="flex items-center">
+                                    <div class="mr-2">
+                                      <span class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ result.valid_detections }}
+                                      </span>
+                                      <span class="text-xs text-gray-500 dark:text-gray-400">/</span>
+                                      <span class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ result.type === 'video' ? result.frames_analyzed + ' images' : '1 image' }}
+                                      </span>
+                                    </div>
+                                    <div class="relative pt-1">
+                                      <div class="overflow-hidden h-2 text-xs flex rounded bg-emerald-200 dark:bg-emerald-900 w-20">
+                                        <div :style="'width:' + (result.valid_detections/(result.type === 'video' ? result.frames_analyzed : 1)*100 + '%')" 
+                                            class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-emerald-500 dark:bg-emerald-600"></div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                
+                                <!-- Results -->
+                                <td class="px-4 py-3">
+                                  <div v-if="Object.keys(result.class_distribution).length > 0">
+                                    <div v-for="(count, className) in result.class_distribution" :key="className" class="mb-1 last:mb-0">
+                                      <div class="flex items-center">
+                                        <!-- @vue-expect-error -->
+                                        <span class="inline-block w-3 h-3 rounded-full mr-2" 
+                                              :class="className === '0' ? 'bg-red-500' : 'bg-yellow-500'"></span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white mr-2">
+                                          {{ 
+                                            // @ts-ignore
+                                            getClassName(className) 
+                                          }}:
+                                        </span>
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                                          {{ count }} détection{{ count > 1 ? 's' : '' }}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic">
+                                    Aucune détection
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
                       <!-- Action Buttons -->
                       <div class="flex items-center justify-end space-x-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 dark:text-white">
                         <UButton
@@ -139,26 +239,6 @@
                         >
                           <UIcon name="i-heroicons-arrow-down-tray" class="w-4 h-4 mr-2" />
                           Télécharger
-                        </UButton>
-                        
-                        <UButton
-                          @click="shareAnalysis(project.id, analysisIndex)"
-                          variant="soft"
-                          size="sm"
-                          class="hover-scale cursor-pointer"
-                        >
-                          <UIcon name="i-heroicons-share" class="w-4 h-4 mr-2" />
-                          Partager
-                        </UButton>
-                        
-                        <UButton
-                          @click="viewDetails(project.id, analysisIndex)"
-                          variant="soft"
-                          size="sm"
-                          class="hover-scale cursor-pointer"
-                        >
-                          <UIcon name="i-heroicons-eye" class="w-4 h-4 mr-2" />
-                          Détails
                         </UButton>
                       </div>
                     </div>
@@ -191,7 +271,7 @@
 
 <script setup lang="ts">
 import type { Project } from '~/types'
-import { ref, computed, onMounted } from 'vue'
+import generateReport from '~/utilities/download-report';
 
 // Page metadata
 definePageMeta({
@@ -266,14 +346,23 @@ const toggleProject = (projectId: string) => {
   }
 }
 
-const toggleAnalysis = (projectId: string, analysisIndex: number) => {
-  const key = `${projectId}-${analysisIndex}`
-  const index = expandedAnalyses.value.indexOf(key)
-  if (index > -1) {
-    expandedAnalyses.value.splice(index, 1)
-  } else {
-    expandedAnalyses.value.push(key)
+// Add to script setup
+const getClassName = (classId: string) => {
+  const classNames: Record<string, string> = {
+    '0': 'Fissure',
+    '1': 'Corrosion',
+    '2': 'Déformation',
+    '3': 'Dommage'
   }
+  return classNames[classId] || `Classe ${classId}`
+}
+
+const getOverallSeverity = (project: Project) => {
+  const severities = project.analysis.map(a => a.result.severity)
+  if (severities.includes('high')) return 'high'
+  if (severities.includes('medium')) return 'medium'
+  if (severities.includes('low')) return 'low'
+  return 'none'
 }
 
 const formatDate = (date: Date) => {
@@ -286,100 +375,8 @@ const formatDate = (date: Date) => {
   }).format(date)
 }
 
-const getOverallSeverity = (project: Project) => {
-  const severities = project.analysis.map(a => a.result.severity)
-  if (severities.includes('high')) return 'high'
-  if (severities.includes('medium')) return 'medium'
-  if (severities.includes('low')) return 'low'
-  return 'none'
-}
-
-const getDefectIcon = (type: string) => {
-  switch (type.toLowerCase()) {
-    case 'fissure':
-    case 'fissure structurelle':
-    case 'fissure de retrait':
-      return 'i-heroicons-bolt'
-    case 'humidité':
-    case 'infiltration d\'eau':
-      return 'i-heroicons-cloud-rain'
-    case 'corrosion':
-      return 'i-heroicons-exclamation-triangle'
-    case 'décollement d\'enduit':
-      return 'i-heroicons-square-3-stack-3d'
-    case 'tuiles cassées':
-      return 'i-heroicons-home'
-    case 'gouttière obstruée':
-      return 'i-heroicons-funnel'
-    default:
-      return 'i-heroicons-exclamation-circle'
-  }
-}
-
-const getDefectIconBg = (type: string) => {
-  switch (type.toLowerCase()) {
-    case 'fissure':
-    case 'fissure structurelle':
-    case 'fissure de retrait':
-      return 'bg-red-100 dark:bg-red-900'
-    case 'humidité':
-    case 'infiltration d\'eau':
-      return 'bg-blue-100 dark:bg-blue-900'
-    case 'corrosion':
-      return 'bg-orange-100 dark:bg-orange-900'
-    case 'décollement d\'enduit':
-      return 'bg-purple-100 dark:bg-purple-900'
-    case 'tuiles cassées':
-      return 'bg-yellow-100 dark:bg-yellow-900'
-    case 'gouttière obstruée':
-      return 'bg-gray-100 dark:bg-gray-800'
-    default:
-      return 'bg-gray-100 dark:bg-gray-800'
-  }
-}
-
-const getDefectIconColor = (type: string) => {
-  switch (type.toLowerCase()) {
-    case 'fissure':
-    case 'fissure structurelle':
-    case 'fissure de retrait':
-      return 'text-red-600 dark:text-red-400'
-    case 'humidité':
-    case 'infiltration d\'eau':
-      return 'text-blue-600 dark:text-blue-400'
-    case 'corrosion':
-      return 'text-orange-600 dark:text-orange-400'
-    case 'décollement d\'enduit':
-      return 'text-purple-600 dark:text-purple-400'
-    case 'tuiles cassées':
-      return 'text-yellow-600 dark:text-yellow-400'
-    case 'gouttière obstruée':
-      return 'text-gray-600 dark:text-gray-400'
-    default:
-      return 'text-gray-600 dark:text-gray-400'
-  }
-}
-
-const downloadReport = (projectId: string, analysisIndex: number) => {
+const downloadReport = async (projectId: string, analysisIndex: number) => {
   console.log(`Downloading report for project ${projectId}, analysis ${analysisIndex}`)
-  // TODO: Implement download functionality
+  await generateReport(projectId, analysisIndex, projects.value);
 }
-
-const shareAnalysis = (projectId: string, analysisIndex: number) => {
-  console.log(`Sharing analysis for project ${projectId}, analysis ${analysisIndex}`)
-  // TODO: Implement share functionality
-}
-
-const viewDetails = (projectId: string, analysisIndex: number) => {
-  console.log(`Viewing details for project ${projectId}, analysis ${analysisIndex}`)
-  // TODO: Navigate to detailed view
-}
-
-// Lifecycle
-onMounted(() => {
-  // Auto-expand first project for demo
-  if (projects.value.length > 0) {
-    expandedProjects.value.push(projects.value[0].id)
-  }
-})
 </script>
