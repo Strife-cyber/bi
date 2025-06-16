@@ -372,8 +372,6 @@ watch(user, (newUser) => {
       allUnreadNotifications.value = list
         .sort((a, b) => b.timestamp - a.timestamp)
         .filter((notif) => !notif.read);
-
-      console.log(allUnreadNotifications.value);
     }
   });
 })
