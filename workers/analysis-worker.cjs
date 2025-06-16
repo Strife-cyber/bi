@@ -4,12 +4,18 @@ const axios = require('axios')
 const crypto = require('crypto')
 const FormData = require('form-data')
 const lockfile = require('proper-lockfile')
+const sendNotification = require('./notification.cjs')
+const updateAnalysisResult = require('./firestore-utils.cjs')
 
 require('dotenv').config()
 
 const BASE_DIR = path.resolve(__dirname, '../public')
 
 const jobFilePath = path.resolve(__dirname, '../jobs/jobQueue.json')
+
+const CRACKS_SECRET_KEY = process.env.CRACKS_SECRET_KEY;
+const FIREBASE_DB_URL = process.env.FIREBASE_DATABASE_URL;
+const BASE_URL = process.env.CRACKS_API_URL || "http://localhost:8000";
 
 async function loadJobs() {
   const data = fs.readFileSync(jobFilePath, 'utf-8')
@@ -27,14 +33,17 @@ async function processJob(job) {
   const promises = job.data.files.map(file => cracked(getAbsoluteFilePath(file)))
   const result = await Promise.all(promises)
 
-  console.log(result);
+  await updateAnalysisResult(job.data.userId, job.data.projectId, job.data.createdAt, result);
+  await sendNotification({
+    userId: job.data.userId,
+    title: 'Analyse terminée 🎉',
+    message: "Votre analyse est terminée avec succès. Consultez les résultats quand vous êtes prêt !",
+    FIREBASE_DB_URL: FIREBASE_DB_URL
+  });
 
   // TODO: Send result somewhere else
   console.log(`✅ Job ${job.id} done`);
 }
-
-const CRACKS_SECRET_KEY = process.env.CRACKS_SECRET_KEY;
-const BASE_URL = process.env.CRACKS_API_URL || "http://localhost:8000";
 
 function getAbsoluteFilePath(file) {
   return path.join(BASE_DIR, file.replace(/^\/+/, ''));
@@ -112,16 +121,16 @@ async function runWorker() {
       const job = jobs.find(j => j.status === 'pending')
 
       if (job) {
-        // job.status = 'processing'
-        // await saveJobs(jobs)
+        job.status = 'processing'
+        await saveJobs(jobs)
 
         try {
           await processJob(job)
-          // job.status = 'done'
-          // job.completedAt = new Date().toISOString()
+          job.status = 'done'
+          job.completedAt = new Date().toISOString()
         } catch (e) {
-          //job.status = 'failed'
-          //job.error = e.message
+          job.status = 'failed'
+          job.error = e.message
           console.error('Job processing error:', e)
         }
 
