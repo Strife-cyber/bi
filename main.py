@@ -1,9 +1,23 @@
-from infer import inference
+from io import BytesIO
+from fastapi import Request
 from auth import verify_hmac
+from infer import run_analysis
 from metrics import parse_csv_metrics, parse_yaml_config
 from fastapi import FastAPI, Request, Header, UploadFile, File
 
 app = FastAPI()
+
+
+@app.middleware("http")
+async def cache_body_middleware(request: Request, call_next):
+    # Only process for /inference/ endpoint
+    if request.url.path == "/inference/" and request.method == "POST":
+        body = await request.body()
+        request.state.body = body  # Store body in request state
+        request._body = body       # Set cached body
+        request.stream = BytesIO(body)  # Reset stream
+    response = await call_next(request)
+    return response
 
 
 @app.get("/metrics/")
@@ -28,10 +42,7 @@ async def run_inference(
     x_timestamp: str = Header(...),
     file: UploadFile = File(...)
 ):
-    request._body = await request.body()
-    await verify_hmac(request, x_signature, x_timestamp)
-
-    # Now we can run our inference
-    inference(file)
-
-
+    # Use cached body from middleware
+    body = request.state.body
+    await verify_hmac(request, x_signature, x_timestamp, body)
+    return await run_analysis(file)

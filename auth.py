@@ -3,13 +3,14 @@ import time
 import hmac
 import hashlib
 
+from dotenv import load_dotenv
 from fastapi import Request, HTTPException
 
 # Load secret key from environment variable
+load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-
-async def verify_hmac(request: Request, signature: str, timestamp: str) -> None:
+async def verify_hmac(request: Request, signature: str, timestamp: str, body: bytes) -> None:
     """
     Verifies the authenticity and integrity of an incoming HTTP request using HMAC.
 
@@ -32,6 +33,9 @@ async def verify_hmac(request: Request, signature: str, timestamp: str) -> None:
     timestamp : str
         The timestamp (in seconds) sent by the client, used to prevent replay attacks.
 
+    body : bytes
+        The body of the request
+
     Raises:
     ------
     HTTPException
@@ -44,19 +48,20 @@ async def verify_hmac(request: Request, signature: str, timestamp: str) -> None:
     if abs(now - int(timestamp)) > 120:
         raise HTTPException(status_code=403, detail="Timestamp expired")
 
-    # Get the request body
-    body = await request.body()
     method = request.method
     path = request.url.path
 
     # Construct the message to sign
-    message = f"{method}{path}{timestamp}{body.decode('utf-8')}"
+    message = f"{method}{path}{timestamp}".encode('utf-8') + body
 
     # Compute expected HMAC signature
     expected_signature = hmac.new(
-        SECRET_KEY.encode(), message.encode(), hashlib.sha256
+        SECRET_KEY.encode(), message, hashlib.sha256
     ).hexdigest()
 
     # Securely compare signatures
     if not hmac.compare_digest(expected_signature, signature):
+        print(expected_signature)
+        print(signature)
         raise HTTPException(status_code=403, detail="Signature mismatch")
+
