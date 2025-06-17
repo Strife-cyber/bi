@@ -97,7 +97,7 @@
           <div class="relative animate-fade-in-left">
             <div class="relative z-10 rounded-2xl shadow-2xl overflow-hidden hover-lift">
               <div class="animate-gradient w-full h-96 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                <div class="text-white opacity-30 text-8xl animate-float">🏢</div>
+                <img src="https://th.bing.com/th/id/R.2a66a458a90bddd20f5f2f2b1d031bd5?rik=6Iko3RLJTtje3g&pid=ImgRaw&r=0" alt="">
                 <div class="absolute inset-0 animate-shimmer"></div>
               </div>
             </div>

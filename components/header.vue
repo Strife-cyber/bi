@@ -84,11 +84,11 @@
                     <UIcon name="i-heroicons-bell-slash" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
                     <p class="text-sm text-center">No new notifications</p>
                   </div>
-                  <div v-else>
+                  <div v-else class="space-y-2">
                     <div
                       v-for="(notification, index) in allUnreadNotifications"
                       :key="index"
-                      class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                      class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border-1 border-black dark:border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                     >
                       <div class="flex items-start space-x-3">
                         <UIcon
@@ -308,7 +308,7 @@ const userMenuItems = computed(() => [
     { label: 'Documentation', icon: 'i-heroicons-book-open', to: '/docs', click: closeMobileMenu },
   ],
   [
-    { label: 'Logout', icon: 'i-heroicons-arrow-right-on-rectangle', click: handleLogout },
+    { label: 'Logout', icon: 'i-heroicons-arrow-right-on-rectangle', to: '/auth/logout', click: closeMobileMenu },
   ],
 ]);
 
