@@ -242,9 +242,9 @@ const registerWithGitHub = async () => {
 
 const registerWithEmail = async () => {
   if (  
-    form.email && form.password 
-    && form.confirmPassword && form.password === form.confirmPassword 
-    && form.acceptTerms && passwordStrength.value >= 2
+    !form.email || !form.password || 
+    !form.confirmPassword || !(form.password === form.confirmPassword) 
+    || !form.acceptTerms
   ) {
     showMessage('Veuillez remplir correctement tous les champs', 'error')
     return

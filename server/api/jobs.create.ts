@@ -1,60 +1,46 @@
 import path from 'path';
-import fs from 'fs/promises';  // Use promises API for async/await
+import fs from 'fs/promises';
 import { v4 as uuid } from 'uuid';
-import lockfile from 'proper-lockfile';
+import FormData from 'form-data';
+import axios from 'axios';
 
-const jobFilePath = path.resolve('jobs/JobQueue.json');
+const SHEDULER_URL = process.env.SHEDULER_URL || 'http://localhost:3001';
+const UPLOAD_BASE_PATH = path.join(process.cwd(), 'public'); // resolves to your root/public
 
 export default defineEventHandler(async (event) => {
-    try {
-        const body = await readBody(event);
-        const userId = body.user;  // Declared earlier for potential use
+  try {
+    const body = await readBody(event);
 
-        const job = {
-            id: uuid(),
-            type: body.type,
-            data: body.data,
-            status: 'pending'
-        };
+    const filePaths = body.data.files || [];
+    const form = new FormData();
 
-        let release;
-        try {
-            // Acquire file lock
-            release = await lockfile.lock(jobFilePath);
-            
-            // Read and parse existing jobs
-            let jobs = [];
-            try {
-                const raw = await fs.readFile(jobFilePath, 'utf8');
-                jobs = JSON.parse(raw);
-            } catch (readError) {
-                // Handle missing file (OK for first job)
-                // @ts-ignore
-                if (readError.code !== 'ENOENT') throw readError;
-            }
+    for (const filePath of filePaths) {
+      const relativePath = filePath.replace(/^\/+/, ''); // removes leading "/"
+      const fullPath = path.join(UPLOAD_BASE_PATH, relativePath); // e.g., public/uploads/...
 
-            // Add new job and write back to file
-            jobs.push(job);
-            await fs.writeFile(jobFilePath, JSON.stringify(jobs, null, 2), 'utf8');
-        } finally {
-            // Always release lock if acquired
-            if (release) await release();
-        }
-
-        // comment if needed
-        await sendNotification({
-            userId: userId,
-            title: "Analyse en cours",
-            message: "Votre demande d'analyse a bien été reçue..."
-        });
-
-        return { success: true, jobId: job.id };
-    } catch (error) {
-        console.error('Job submission failed:', error);
-        return { 
-            error: true, 
-            //@ts-ignore
-            message: error.message || 'Internal server error' 
-        };
+      try {
+        const fileBuffer = await fs.readFile(fullPath);
+        const fileName = path.basename(fullPath);
+        form.append('files', fileBuffer, fileName);
+      } catch (e: any) {
+        console.warn(`⚠️ Failed to read file: ${fullPath} — ${e.message}`);
+      }
     }
+
+    form.append('userId', body.user);
+    form.append('projectId', body.data.projectId);
+    form.append('type', body.type);
+
+    const response = await axios.post(`${SHEDULER_URL}/enqueue-job`, form, {
+      headers: form.getHeaders()
+    });
+
+    return { success: true, jobId: response.data.jobId };
+  } catch (error: any) {
+    console.error('❌ Job submission failed:', error);
+    return {
+      error: true,
+      message: error.message || 'Internal server error'
+    };
+  }
 });

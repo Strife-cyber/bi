@@ -132,11 +132,11 @@
               >
                 <div class="flex items-center gap-2">
                   <span class="truncate w-[150px] font-semibold text-gray-800 dark:text-gray-200 hidden lg:inline overflow-hidden whitespace-nowrap">
-                    {{ user?.displayName }}
+                    {{ user?.displayName || user?.email }}
                   </span>
                   <UAvatar 
                     :src="user?.photoURL" 
-                    :alt="user?.displayName"
+                    :alt="user?.displayName || user?.email.toUpperCase()"
                     size="sm"
                     :ui="{ size: { xs: 'text-sm' } }"
                     class="w-8 h-8 ring-2 ring-gray-300 p-1 dark:text-white  dark:ring-gray-600"

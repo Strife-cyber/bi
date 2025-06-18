@@ -142,13 +142,15 @@ const isLoading = ref(false)
 const message = ref('')
 const messageType = ref('')
 
+const { signInWithGoogle, signInWithGitHub, signInWithEmail } = useAuth();
+
 // Authentication methods
 const loginWithGoogle = async () => {
   isLoading.value = true
   try {
     // Simulate Google OAuth
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    showMessage('Connexion Google réussie !', 'success')
+    await signInWithGoogle();
+    showMessage('Connexion Google réussie !', 'success');
     navigateTo('/dashboard');
   } catch (error) {
     showMessage('Erreur lors de la connexion Google', 'error')
@@ -161,8 +163,8 @@ const loginWithGitHub = async () => {
   isLoading.value = true
   try {
     // Simulate GitHub OAuth
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    showMessage('Connexion GitHub réussie !', 'success')
+    await signInWithGitHub();
+    showMessage('Connexion GitHub réussie !', 'success');
     navigateTo('/dashboard');
   } catch (error) {
     showMessage('Erreur lors de la connexion GitHub', 'error')
@@ -175,7 +177,7 @@ const loginWithEmail = async () => {
   isLoading.value = true
   try {
     // Simulate email login
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await signInWithEmail(form.email, form.password);
     if (form.email && form.password) {
       showMessage('Connexion réussie !', 'success')
       navigateTo('/dashboard');
