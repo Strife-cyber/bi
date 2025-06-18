@@ -65,6 +65,7 @@ export function useNotifications() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ read: true, readAt: Date.now() }),
       });
+      await deleteNotification(notificationId);
     } catch (e) {
       console.error("Failed to mark notification as read:", e);
     }

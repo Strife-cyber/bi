@@ -697,35 +697,6 @@ const getAnalysisStatusText = (analysis: Analysis) => {
   return 'Normal'
 }
 
-const getSeverityColor = (severity: string) => {
-  if (severity === 'high') return 'error'
-  if (severity === 'medium') return 'warning'
-  return 'success'
-}
-
-const getSeverityText = (severity: string) => {
-  if (severity === 'high') return 'Élevée'
-  if (severity === 'medium') return 'Moyenne'
-  return 'Faible'
-}
-
-const getDefectSeverityColor = (defects: number) => {
-  if (defects >= 5) return 'error'
-  if (defects >= 2) return 'warning'
-  return 'success'
-}
-
-const getStructureHealthPercent = (result: Record<string, any>) => {
-  return result.health || 100
-}
-
-const getStructureHealthColor = (result: Record<string, any>) => {
-  const health = result.health || 100
-  if (health < 60) return 'bg-gradient-to-r from-red-500 to-red-600'
-  if (health < 80) return 'bg-gradient-to-r from-yellow-500 to-yellow-600'
-  return 'bg-gradient-to-r from-emerald-500 to-teal-600'
-}
-
 const isVideo = (url: string) => {
   return url.match(/\.(mp4|mov|webm|avi|wmv|flv|mkv)($|\?)/i) || 
          url.includes('vimeo.com') || 
