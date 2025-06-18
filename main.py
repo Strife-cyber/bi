@@ -1,5 +1,4 @@
 from io import BytesIO
-from fastapi import Request
 from auth import verify_hmac
 from infer import run_analysis
 from metrics import parse_csv_metrics, parse_yaml_config
@@ -46,3 +45,8 @@ async def run_inference(
     body = request.state.body
     await verify_hmac(request, x_signature, x_timestamp, body)
     return await run_analysis(file)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=3002, reload=True)
+
