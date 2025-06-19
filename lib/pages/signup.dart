@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:internship/widgets/app_scaffold.dart';
 
 class SignupPage extends StatefulWidget {
   final VoidCallback onSwitchToLogin;
@@ -83,9 +84,9 @@ class _SignupPageState extends State<SignupPage>
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
             colors: [
-              Colors.green.shade400,
-              Colors.green.shade600,
-              Colors.green.shade800,
+              Colors.black45,
+              Colors.black54,
+              Colors.black87,
             ],
           ),
         ),
@@ -391,6 +392,10 @@ class _SignupPageState extends State<SignupPage>
             margin: const EdgeInsets.all(10),
           ),
         );
+
+        if (mounted) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold()));
+        }
       }
     }
   }
@@ -406,6 +411,10 @@ class _SignupPageState extends State<SignupPage>
         margin: const EdgeInsets.all(10),
       ),
     );
+
+    if (mounted) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold()));
+    }
   }
 
   void _handleGithubSignup() async {
@@ -419,6 +428,10 @@ class _SignupPageState extends State<SignupPage>
         margin: const EdgeInsets.all(10),
       ),
     );
+
+    if (mounted) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold()));
+    }
   }
 
   // Glassmorphism UI Components (same as login page)

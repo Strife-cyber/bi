@@ -2,9 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:internship/pages/dashboard.dart';
+import 'package:internship/widgets/app_scaffold.dart';
 import 'package:internship/services/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   final VoidCallback onSwitchToSignup;
@@ -79,7 +79,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
     return Scaffold(
       body: Container(
-        color: Colors.green[800],
+        color: Colors.black87,
         child: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
@@ -350,6 +350,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
             margin: const EdgeInsets.all(10),
           ),
         );
+
+        Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold()));
       }
     }
   }
@@ -369,7 +371,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
     final user = await authService.signInWithGoogle();
     if (user != null) {
       if (mounted) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => Dashboard()));
+        Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold()));
       }
     }
   }
@@ -390,7 +392,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
     if (user != null) {
       if (mounted) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => Dashboard()));
+        Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold()));
       }
     }
   }
