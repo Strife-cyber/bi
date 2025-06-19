@@ -44,11 +44,11 @@ class ProjectService {
     }
   }
 
-  Future<Map<String, dynamic>?> getProjectById(String projectId) async {
+  Future<Project?> getProjectById(String projectId) async {
     try {
       final docRef = _projectsCollection.doc(projectId);
       final snap = await docRef.get();
-      return snap.exists ? snap.data() : null;
+      return snap.exists ? Project.fromMap(snap.data()!) : null;
     } catch (e) {
       debugPrint('Error fetching project by ID: $e');
       return null;

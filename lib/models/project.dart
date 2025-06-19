@@ -9,7 +9,7 @@ class Project {
   final String description;
   final Timestamp createdAt;
   final Timestamp updatedAt;
-  final List<Analysis> analysis;
+  List<Analysis> analysis;
 
   Project({
     required this.id,

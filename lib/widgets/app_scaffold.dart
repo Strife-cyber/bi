@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internship/pages/dashboard.dart';
 import 'package:internship/pages/inspections.dart';
+import 'package:internship/pages/poilicies.dart';
 import 'package:internship/widgets/navigation.dart';
 import 'package:internship/widgets/sidebar.dart';
 import 'package:internship/widgets/header.dart';
 
 // AppScaffold: A standard component with a full-screen sidebar and bottom navigation
 class AppScaffold extends ConsumerStatefulWidget {
-  const AppScaffold({super.key});
+  final Widget? content;
+
+  const AppScaffold({super.key, this.content});
 
   @override
   ConsumerState<AppScaffold> createState() => _AppScaffoldState();
@@ -18,13 +21,14 @@ class AppScaffold extends ConsumerStatefulWidget {
 class _AppScaffoldState extends ConsumerState<AppScaffold> {
   bool _isSidebarOpen = false;
   int _currentIndex = 0;
+  bool switchedAfterContent = false;
 
   // List of pages corresponding to navigation items
   static final List<Widget> _pages = [
     const Dashboard(),
     const Inspections(),
     const Center(child: Text('Rapports', style: TextStyle(fontSize: 24))),
-    const Center(child: Text('Conformité', style: TextStyle(fontSize: 24))),
+    const ConstructionRegulationsPage(),
   ];
 
   // Routes corresponding to navigation items (for sidebar navigation)
@@ -44,6 +48,9 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
   void _onTabChanged(int index) {
     setState(() {
       _currentIndex = index;
+      if (widget.content != null) {
+        switchedAfterContent = true;
+      }
     });
   }
 
@@ -61,7 +68,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                 appName: 'Batiment Intelligent',
                 onMenuPressed: _toggleSidebar
               ),
-              body: SafeArea(child: _pages[_currentIndex]),
+              body: SafeArea(child: widget.content != null && !switchedAfterContent ? widget.content! : _pages[_currentIndex]),
               bottomNavigationBar: Navigation(
                 currentIndex: _currentIndex,
                 onTabChanged: _onTabChanged,

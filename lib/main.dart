@@ -24,14 +24,11 @@ class BatimentIntelligentApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Bâtiment Intelligent',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.green,
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3B82F6),
-          brightness: Brightness.light,
-        ),
         fontFamily: 'Roboto',
       ),
+      themeMode: ThemeMode.dark,
       home: FutureBuilder<bool>(
         future: ref.read(authServiceProvider).tryAutoLogin(),
         builder: (context, snapshot) {

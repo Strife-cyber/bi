@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:internship/pages/project_page.dart';
 import 'package:internship/services/notification_service.dart';
+import 'package:internship/widgets/app_scaffold.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:internship/models/project.dart';
@@ -32,6 +34,18 @@ class _InspectionsState extends ConsumerState<Inspections>
     super.dispose();
   }
 
+  Future<List<Project>> getAllProjects(ProjectService projectService) async {
+    final projects = await projectService.getProjects();
+    final List<Project> loadedProjects = [];
+
+    for(var project in projects) {
+      project.analysis = await projectService.getAnalysisForProject(project.id);
+      loadedProjects.add(project);
+    }
+
+    return loadedProjects;
+  }
+
   @override
   Widget build(BuildContext context) {
     final projectService = ref.read(projectServiceProvider);
@@ -46,7 +60,7 @@ class _InspectionsState extends ConsumerState<Inspections>
             // Main Content
             Expanded(
               child: FutureBuilder<List<Project>>(
-                future: projectService.getProjects(),
+                future: getAllProjects(projectService),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
@@ -668,7 +682,7 @@ class _InspectionsState extends ConsumerState<Inspections>
   }
 
   void _openProject(Project project) {
-    Navigator.pushNamed(context, '/project/${project.id}');
+    Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold(content: ProjectDetailsPage(projectId: project.id))));
   }
 
   void _showProjectActions(Project project) {
