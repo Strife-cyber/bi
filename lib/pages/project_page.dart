@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:internship/pages/media_upload.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:internship/models/project.dart';
@@ -253,7 +254,7 @@ class _ProjectDetailsPageState extends ConsumerState<ProjectDetailsPage> with Si
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => setState(() => {}),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MediaUploadPage(projectId: project.id))),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Nouvelle Analyse'),
                   style: ElevatedButton.styleFrom(

@@ -59,6 +59,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: Stack(
           children: [

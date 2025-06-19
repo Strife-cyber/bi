@@ -86,11 +86,15 @@ class ProjectService {
         .collection('analysis');
   }
 
-  Future<void> addAnalysis(String projectId, Map<String, dynamic> analysis) async {
+  Future<void> addAnalysis(String projectId, Analysis analysis) async {
     try {
+      debugPrint("Trying to add analysis");
       final analysisCollection = getAnalysisCollection(projectId);
+      debugPrint(analysisCollection.toString());
       final ref = analysisCollection.doc();
-      await ref.set(analysis);
+      debugPrint(ref.toString());
+      debugPrint(analysis.toMap().toString());
+      await ref.set(analysis.toMap());
     } catch (e) {
       debugPrint('Error adding analysis: $e');
     }
@@ -175,7 +179,7 @@ class ProjectService {
 
       // Sync each analysis item
       for (final analysis in localProject.analysis) {
-        await addAnalysis(projectId, analysis.toMap());
+        await addAnalysis(projectId, analysis);
       }
     }
   }

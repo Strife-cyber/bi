@@ -1,14 +1,23 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:camera/camera.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:internship/services/auth_service.dart';
+import 'package:internship/services/job_service.dart';
+import 'package:internship/services/project_service.dart';
+import 'package:path/path.dart'as path ;
 import 'package:image_picker/image_picker.dart';
+import 'package:internship/models/analysis.dart';
+import 'package:internship/services/file_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internship/services/camera_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class MediaUploadPage extends ConsumerStatefulWidget {
-  const MediaUploadPage({super.key});
+  final String projectId;
+
+  const MediaUploadPage({super.key, required this.projectId});
 
   @override
   ConsumerState<MediaUploadPage> createState() => _MediaUploadPageState();
@@ -100,7 +109,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
         });
       }
     } catch (e) {
-      _showErrorDialog('Camera initialization failed: $e');
+      _showErrorDialog('Échec de l\'initialisation de la caméra : $e');
     }
   }
 
@@ -127,7 +136,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
 
     if (deniedPermissions.isNotEmpty) {
       _showErrorDialog(
-        'The following permissions are required: ${deniedPermissions.join(', ')}',
+        'Les autorisations suivantes sont requises : ${deniedPermissions.join(', ')}',
       );
     }
   }
@@ -164,10 +173,10 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
       }
       
       if (files.isNotEmpty) {
-        _showSuccessMessage('${files.length} file(s) added from gallery');
+        _showSuccessMessage('${files.length} fichier(s) ajouté(s) depuis la galerie');
       }
     } catch (e) {
-      _showErrorDialog('Failed to pick from gallery: $e');
+      _showErrorDialog('Échec de la sélection depuis la galerie : $e');
     } finally {
       setState(() => _isProcessing = false);
     }
@@ -190,9 +199,9 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
         _mediaFiles.add(mediaFile);
       });
       
-      _showSuccessMessage('Photo captured successfully');
+      _showSuccessMessage('Photo capturée avec succès');
     } catch (e) {
-      _showErrorDialog('Failed to capture photo: $e');
+      _showErrorDialog('Échec de la capture de la photo : $e');
     } finally {
       setState(() => _isProcessing = false);
     }
@@ -217,9 +226,9 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
         });
       });
       
-      _showSuccessMessage('Video recording started');
+      _showSuccessMessage('Enregistrement vidéo démarré');
     } catch (e) {
-      _showErrorDialog('Failed to start recording: $e');
+      _showErrorDialog('Échec du démarrage de l\'enregistrement : $e');
     }
   }
 
@@ -247,9 +256,9 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
         _recordingDuration = 0;
       });
       
-      _showSuccessMessage('Video recorded successfully');
+      _showSuccessMessage('Vidéo enregistrée avec succès');
     } catch (e) {
-      _showErrorDialog('Failed to stop recording: $e');
+      _showErrorDialog('Échec de l\'arrêt de l\'enregistrement : $e');
     } finally {
       setState(() => _isProcessing = false);
     }
@@ -272,64 +281,73 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
     setState(() {
       _mediaFiles.removeAt(index);
     });
-    _showSuccessMessage('File removed');
+    _showSuccessMessage('Fichier supprimé');
   }
 
   void _cancelCurrentCapture() {
     if (_isRecording) {
       _stopVideoRecording();
     }
-    _showSuccessMessage('Capture cancelled');
+    _showSuccessMessage('Capture annulée');
   }
 
   Future<void> _launchAnalysis() async {
+    final fileService = FileService();
+    final List<String> filePaths = [];
+    final JobService jobService = JobService();
+    final authService = ref.read(authServiceProvider);
+    final projectService = ref.read(projectServiceProvider);
+
     if (_mediaFiles.isEmpty) {
-      _showErrorDialog('No media files to analyze');
+      _showErrorDialog('Aucun fichier média à analyser');
       return;
     }
     
     setState(() => _isProcessing = true);
-    
-    // Simulate analysis process
-    await Future.delayed(const Duration(seconds: 2));
+
+    final user = authService.currentUser;
+    if (user != null) {
+      for(var file in _mediaFiles) {
+        try {
+          final savedPath = await fileService.saveFile(file.file, path.basename(file.file.path));
+          debugPrint('File saved at: $savedPath');
+          filePaths.add(savedPath);
+        } catch (e) {
+          debugPrint('Error saving file: $e');
+        }
+      }
+
+      final analysis = Analysis(
+        files: filePaths, 
+        result: {}, 
+        createdAt: Timestamp.now(), 
+        updatedAt: Timestamp.now()
+      );
+
+      await projectService.addAnalysis(widget.projectId, analysis);
+
+      final job = await jobService.submitJob(
+        files: analysis.files, 
+        userId: user.uid, 
+        projectId: widget.projectId, 
+        type: 'Analysis'
+      );
+
+      debugPrint(job.toString());
+    }
     
     setState(() => _isProcessing = false);
-    
-    _showAnalysisResults();
-  }
 
-  void _showAnalysisResults() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Analysis Results'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Total files analyzed: ${_mediaFiles.length}'),
-            const SizedBox(height: 8),
-            Text('Images: ${_mediaFiles.where((f) => f.type == MediaType.image).length}'),
-            Text('Videos: ${_mediaFiles.where((f) => f.type == MediaType.video).length}'),
-            const SizedBox(height: 16),
-            const Text('Analysis completed successfully!'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        title: const Text('Erreur'),
         content: Text(message),
         actions: [
           TextButton(
@@ -421,13 +439,13 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
       ),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Media Capture'),
+          title: const Text('Capture de médias'),
           actions: [
             if (_mediaFiles.isNotEmpty)
               IconButton(
                 onPressed: _launchAnalysis,
                 icon: const Icon(Icons.analytics),
-                tooltip: 'Launch Analysis',
+                tooltip: 'Lancer l\'analyse',
               ),
           ],
         ),
@@ -486,7 +504,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
               const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(primaryGreen)),
               const SizedBox(height: 20),
               Text(
-                'Initializing Camera...',
+                'Initialisation de la caméra...',
                 style: TextStyle(
                   color: Colors.grey[400],
                   fontSize: 16,
@@ -545,7 +563,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
                         const Icon(Icons.fiber_manual_record, color: Colors.white, size: 12),
                         const SizedBox(width: 4),
                         Text(
-                          'REC ${_formatDuration(_recordingDuration)}',
+                          'ENR ${_formatDuration(_recordingDuration)}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -586,7 +604,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
                 const Icon(Icons.keyboard_arrow_up, color: primaryGreen, size: 32),
                 const SizedBox(height: 4),
                 Text(
-                  'Swipe up for controls',
+                  'Glisser vers le haut pour les contrôles',
                   style: TextStyle(
                     color: Colors.grey[200],
                     fontSize: 14,
@@ -639,8 +657,8 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
           const SizedBox(height: 16),
           Text(
             _isRecording 
-                ? 'Recording: ${_formatDuration(_recordingDuration)}' 
-                : 'Capture media',
+                ? 'Enregistrement : ${_formatDuration(_recordingDuration)}' 
+                : 'Capturer des médias',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -658,7 +676,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upload from Gallery',
+            'Télécharger depuis la galerie',
             style: TextStyle(
               color: Colors.grey[200],
               fontSize: 18,
@@ -672,7 +690,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
                 child: ElevatedButton.icon(
                   onPressed: _isProcessing ? null : () => _pickFromGallery(MediaType.image),
                   icon: const Icon(Icons.photo_library),
-                  label: const Text('Select Images'),
+                  label: const Text('Sélectionner des images'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -680,7 +698,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
                 child: ElevatedButton.icon(
                   onPressed: _isProcessing ? null : () => _pickFromGallery(MediaType.video),
                   icon: const Icon(Icons.video_library),
-                  label: const Text('Select Videos'),
+                  label: const Text('Sélectionner des vidéos'),
                 ),
               ),
             ],
@@ -710,7 +728,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
               ),
               const SizedBox(height: 16),
               Text(
-                'No media files selected',
+                'Aucun fichier média sélectionné',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[400],
@@ -718,7 +736,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
               ),
               const SizedBox(height: 8),
               Text(
-                'Capture photos/videos or select from gallery',
+                'Capturer des photos/vidéos ou sélectionner depuis la galerie',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -737,7 +755,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Selected Media (${_mediaFiles.length})',
+            'Médias sélectionnés (${_mediaFiles.length})',
             style: TextStyle(
               color: Colors.grey[200],
               fontSize: 18,
@@ -842,7 +860,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
                       ),
                     )
                   : const Icon(Icons.analytics),
-              label: Text(_isProcessing ? 'Processing...' : 'Analyze Media'),
+              label: Text(_isProcessing ? 'Traitement...' : 'Analyser les médias'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
               ),
@@ -857,7 +875,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
               );
             },
             icon: const Icon(Icons.camera_alt),
-            label: const Text('Back to Camera'),
+            label: const Text('Retour à la caméra'),
             style: OutlinedButton.styleFrom(
               foregroundColor: primaryGreen,
               side: BorderSide(color: primaryGreen),

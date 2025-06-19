@@ -34,8 +34,8 @@ class Analysis {
     return <String, dynamic>{
       'files': files,
       'result': result,
-      'createdAt': createdAt.millisecondsSinceEpoch,
-      'updatedAt': updatedAt.millisecondsSinceEpoch,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
     };
   }
 
