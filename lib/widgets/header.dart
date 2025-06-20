@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:internship/services/notification_service.dart';
 
-class Header extends StatefulWidget implements PreferredSizeWidget {
+class Header extends ConsumerStatefulWidget implements PreferredSizeWidget {
   final String appName;
-  final int notificationCount;
   final VoidCallback onMenuPressed;
   final VoidCallback? onNotificationPressed;
   final Color? accentColor;
@@ -14,7 +15,6 @@ class Header extends StatefulWidget implements PreferredSizeWidget {
     super.key,
     required this.appName,
     required this.onMenuPressed,
-    this.notificationCount = 0,
     this.onNotificationPressed,
     this.accentColor,
     this.backgroundColor,
@@ -23,16 +23,17 @@ class Header extends StatefulWidget implements PreferredSizeWidget {
   });
 
   @override
-  State<Header> createState() => _HeaderState();
+  ConsumerState<Header> createState() => _HeaderState();
 
   @override
   Size get preferredSize => Size.fromHeight(height);
 }
 
-class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
+class _HeaderState extends ConsumerState<Header> with SingleTickerProviderStateMixin {
+  int notificationCount = 0;
   bool _isMenuPressed = false;
+  late Animation<double> _scaleAnimation;
+  late AnimationController _animationController;
 
   @override
   void initState() {
@@ -47,6 +48,18 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
         curve: Curves.easeInOut,
       ),
     );
+
+    fetchNotificationCount();
+  }
+
+  void fetchNotificationCount() async {
+    final notificationService = ref.read(notificationServiceProvider);
+    var notifications = await notificationService.fetchNotifications();
+
+    setState(() {
+      notificationCount = notifications.length;
+      debugPrint(notificationCount.toString());
+    });
   }
 
   @override
@@ -241,7 +254,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                 color: Colors.white,
                 size: 20,
               ),
-              if (widget.notificationCount > 0)
+              if (notificationCount > 0)
                 Positioned(
                   right: -5,
                   top: -5,
@@ -261,7 +274,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                     ),
                     child: Center(
                       child: Text(
-                        widget.notificationCount > 99 ? '99+' : widget.notificationCount.toString(),
+                        notificationCount > 99 ? '99+' : notificationCount.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 9,

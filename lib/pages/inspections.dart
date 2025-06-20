@@ -35,15 +35,21 @@ class _InspectionsState extends ConsumerState<Inspections>
   }
 
   Future<List<Project>> getAllProjects(ProjectService projectService) async {
-    final projects = await projectService.getProjects();
-    final List<Project> loadedProjects = [];
+    try {
+      final projects = await projectService.getProjects();
+      final analysisFutures = projects.map((p) => 
+          projectService.getAnalysisForProject(p.id)
+      );
 
-    for(var project in projects) {
-      project.analysis = await projectService.getAnalysisForProject(project.id);
-      loadedProjects.add(project);
+      final analyses = await Future.wait(analysisFutures);
+
+      return projects.asMap().entries.map((entry) {
+        return entry.value.copyWith(analysis: analyses[entry.key]);
+      }).toList();
+    } catch (e) {
+      // Add error handling/logging
+      throw Exception('Failed to load projects: $e');
     }
-
-    return loadedProjects;
   }
 
   @override

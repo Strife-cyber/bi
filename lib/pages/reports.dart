@@ -25,19 +25,26 @@ class _AnalysisResultsPageState extends ConsumerState<AnalysisResultsPage> {
   }
 
   Future<void> _fetchProjects() async {
-    final projectService = ref.read(projectServiceProvider);
-    final projects = await projectService.getProjects();
-    final List<Project> loadedProjects = [];
+    try {
+      final projectService = ref.read(projectServiceProvider);
+      final projects = await projectService.getProjects();
+      final analysisFutures = projects.map((p) => 
+          projectService.getAnalysisForProject(p.id)
+      );
 
-    for (var project in projects) {
-      project.analysis = await projectService.getAnalysisForProject(project.id);
-      loadedProjects.add(project);
+      final analyses = await Future.wait(analysisFutures);
+      
+      setState(() {
+        _projects = projects.asMap().entries.map((entry) {
+          return entry.value.copyWith(analysis: analyses[entry.key]);
+        }).toList();
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      // Add error handling/logging
+      throw Exception('Failed to load projects: $e');
     }
-
-    setState(() {
-      _projects = loadedProjects;
-      _isLoading = false;
-    });
   }
 
   List<Project> get _filteredProjects {
@@ -325,6 +332,7 @@ class _AnalysisResultsPageState extends ConsumerState<AnalysisResultsPage> {
                                                                               scrollDirection: Axis.horizontal,
                                                                               child: DataTable(
                                                                                 columnSpacing: 16,
+                                                                                // ignore: deprecated_member_use
                                                                                 dataRowHeight: 80, // Fixed row height instead of min height
                                                                                 headingRowHeight: 56,
                                                                                 columns: const [

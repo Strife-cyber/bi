@@ -1,321 +1,273 @@
-import 'dart:ui';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:internship/models/project.dart';
+import 'package:internship/services/auth_service.dart';
+import 'package:internship/services/notification_service.dart';
+import 'package:internship/services/project_service.dart';
+import 'package:internship/utilities/date.dart';
+import 'package:internship/widgets/app_scaffold.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
-class Dashboard extends StatefulWidget {
+class Dashboard extends ConsumerStatefulWidget {
   const Dashboard({super.key});
 
   @override
-  State<Dashboard> createState() => _DashboardState();
+  ConsumerState<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-  
+class _DashboardState extends ConsumerState<Dashboard> {
+  final notifications = [];
+  final List<Project> projects = [];
+
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    _animationController.forward();
+
+    final projectService = ref.read(projectServiceProvider);
+    final notificationService = ref.read(notificationServiceProvider);
+
+    fetchNotifications(notificationService);
+    fetchProjects(projectService);
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  void fetchNotifications(NotificationService notificationService) async {
+    final notifs = await notificationService.fetchNotifications();
+    setState(() {
+      notifications.addAll(notifs);
+    });
+  }
+
+  void fetchProjects(ProjectService projectService) async {
+    try {
+      final pjects = await projectService.getProjects();
+      final analysisFutures = pjects.map((p) => 
+          projectService.getAnalysisForProject(p.id)
+      );
+
+      final analyses = await Future.wait(analysisFutures);
+
+      setState(() {
+        projects.addAll(pjects.asMap().entries.map((entry) {
+          return entry.value.copyWith(analysis: analyses[entry.key]);
+        }).toList());
+      });
+    } catch (e) {
+      // Add error handling/logging
+      throw Exception('Failed to load projects: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-      ),
-    );
+    final authService = ref.read(authServiceProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildWelcomeSection(),
-                      const SizedBox(height: 24),
-                      _buildStatsCards(),
-                      const SizedBox(height: 24),
-                      _buildQuickActions(),
-                      const SizedBox(height: 24),
-                      _buildRecentInspections(),
-                      const SizedBox(height: 24),
-                      _buildAIInsights(),
-                      const SizedBox(height: 24),
-                      _buildActiveProjects(),
-                      const SizedBox(height: 100), // Bottom padding for FAB
-                    ],
-                  ),
-                ),
-              ),
-            ],
+      backgroundColor: const Color(0xFF121212),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 150,
+            automaticallyImplyLeading: false,
+            flexibleSpace: FlexibleSpaceBar(
+              background: _buildWelcomeSection(authService),
+            ),
+            pinned: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            systemOverlayStyle: SystemUiOverlayStyle.light,
           ),
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildStatsGrid(),
+                const SizedBox(height: 24),
+                _buildQuickActions(),
+                const SizedBox(height: 24),
+                _buildAIInsights(),
+                const SizedBox(height: 24),
+                _buildActiveProjects(),
+                const SizedBox(height: 80),
+              ]),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        backgroundColor: Colors.tealAccent.shade400,
+        child: const Icon(Icons.add, color: Colors.black),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeSection(AuthService authService) {
+    final user = authService.currentUser;
+    final alertsCount = notifications.length;
+    final inspectionsCount = projects.fold(0, (sum, p) => sum + p.analysis.length);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.green.shade400.withValues(alpha: 0.6),
+            Colors.teal.shade800.withValues(alpha: 0.8)
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bonjour, ${user?.displayName ?? user?.email}',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Vous avez $alertsCount nouvelles alertes et $inspectionsCount inspections aujourd\'hui.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildWelcomeSection() {
-    return _buildGlassmorphicCard(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.green.shade400.withValues(alpha: 0.8),
-          Colors.teal.shade500.withValues(alpha: 0.8),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Bonjour, Jean-Pierre',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Inspecteur Principal',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Vous avez 3 nouvelles alertes et 2 inspections programmées aujourd\'hui.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.wb_sunny_outlined,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildStatsGrid() {
+    final stats = [
+      {'title': 'Inspections', 'value': (projects.fold(0, (sum, p) => sum + p.analysis.length)).toString(), 'change': '+3', 'icon': Icons.search, 'color': Colors.blueAccent},
+      {'title': 'Alertes', 'value': notifications.length.toString(), 'change': '2 critiques', 'icon': Icons.warning, 'color': Colors.orange},
+      {'title': 'Conformité', 'value': '87%', 'change': '+5%', 'icon': Icons.verified, 'color': Colors.green},
+      {'title': 'Drones', 'value': '3/5', 'change': 'En mission', 'icon': Icons.flaky, 'color': Colors.purple},
+    ];
 
-  Widget _buildStatsCards() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Statistiques du jour',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                title: 'Inspections',
-                value: '12',
-                subtitle: '+3 aujourd\'hui',
-                icon: Icons.search,
-                color: Colors.blue,
-                trend: 0.15,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                title: 'Alertes',
-                value: '5',
-                subtitle: '2 critiques',
-                icon: Icons.warning,
-                color: Colors.orange,
-                trend: -0.08,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                title: 'Conformité',
-                value: '87%',
-                subtitle: 'Moyenne',
-                icon: Icons.verified,
-                color: Colors.green,
-                trend: 0.05,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                title: 'Drones actifs',
-                value: '3',
-                subtitle: 'En mission',
-                icon: Icons.flight,
-                color: Colors.purple,
-                trend: 0.0,
-              ),
-            ),
-          ],
-        ),
-      ],
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: stats.length,
+      itemBuilder: (context, index) {
+        final stat = stats[index];
+        return _buildStatCard(
+          title: stat['title'] as String,
+          value: stat['value'] as String,
+          change: stat['change'] as String,
+          icon: stat['icon'] as IconData,
+          color: stat['color'] as Color,
+        );
+      },
     );
   }
 
   Widget _buildStatCard({
     required String title,
     required String value,
-    required String subtitle,
+    required String change,
     required IconData icon,
-    required MaterialColor color,
-    required double trend,
+    required Color color,
   }) {
-    return _buildGlassmorphicCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: color.shade600,
-                  size: 20,
-                ),
-              ),
-              if (trend != 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: trend > 0 ? Colors.green.shade100 : Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        trend > 0 ? Icons.trending_up : Icons.trending_down,
-                        size: 12,
-                        color: trend > 0 ? Colors.green.shade600 : Colors.red.shade600,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${(trend * 100).abs().toStringAsFixed(0)}%',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: trend > 0 ? Colors.green.shade600 : Colors.red.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade500,
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    change,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildQuickActions() {
+    final actions = [
+      {'title': 'Nouvelle Inspection', 'icon': Icons.search, 'color': Colors.tealAccent, 'onClicked': () => Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold(page: 1)))},
+      {'title': 'Conformite', 'icon': Icons.article, 'color': Colors.blueAccent, 'onClicked': () => Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold(page: 3)))},
+      {'title': 'Rapports', 'icon': Icons.psychology, 'color': Colors.purpleAccent, 'onClicked': () => Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold(page: 2)))},
+      {'title': 'Capteurs', 'icon': Icons.sensors, 'color': Colors.orange, 'onClicked': () => {}},
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -324,56 +276,29 @@ class _DashboardState extends State<Dashboard>
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionCard(
-                title: 'Nouvelle Inspection',
-                subtitle: 'Démarrer une inspection',
-                icon: Icons.add_circle_outline,
-                color: Colors.green,
-                onTap: () => _showNewInspectionDialog(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildActionCard(
-                title: 'Lancer Drone',
-                subtitle: 'Mission automatique',
-                icon: Icons.flight_takeoff,
-                color: Colors.blue,
-                onTap: () => _showDroneMissionDialog(),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionCard(
-                title: 'Rapport IA',
-                subtitle: 'Analyse prédictive',
-                icon: Icons.psychology,
-                color: Colors.purple,
-                onTap: () => _showAIReportDialog(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildActionCard(
-                title: 'Capteurs IoT',
-                subtitle: 'Surveillance temps réel',
-                icon: Icons.sensors,
-                color: Colors.orange,
-                onTap: () => _showSensorsDialog(),
-              ),
-            ),
-          ],
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 1,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: actions.length,
+          itemBuilder: (context, index) {
+            final action = actions[index];
+            return _buildActionCard(
+              title: action['title'] as String,
+              icon: action['icon'] as IconData,
+              color: action['color'] as Color,
+              onClicked: action['onClicked'] as Function
+            );
+          },
         ),
       ],
     );
@@ -381,305 +306,128 @@ class _DashboardState extends State<Dashboard>
 
   Widget _buildActionCard({
     required String title,
-    required String subtitle,
     required IconData icon,
-    required MaterialColor color,
-    required VoidCallback onTap,
+    required Color color,
+    required Function onClicked
   }) {
-    return _buildGlassmorphicCard(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: color.shade600,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentInspections() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Inspections récentes',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            TextButton(
-              onPressed: () {},
-              child: const Text('Voir tout'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildInspectionCard(
-          buildingName: 'Immeuble New Bell',
-          address: 'Douala, Cameroun',
-          status: 'Critique',
-          statusColor: Colors.red,
-          date: 'Il y a 2h',
-          progress: 0.85,
-        ),
-        const SizedBox(height: 12),
-        _buildInspectionCard(
-          buildingName: 'Centre Commercial Melen',
-          address: 'Yaoundé, Cameroun',
-          status: 'Bon état',
-          statusColor: Colors.green,
-          date: 'Il y a 4h',
-          progress: 1.0,
-        ),
-        const SizedBox(height: 12),
-        _buildInspectionCard(
-          buildingName: 'Résidence Bépanda',
-          address: 'Douala, Cameroun',
-          status: 'En cours',
-          statusColor: Colors.orange,
-          date: 'En cours...',
-          progress: 0.45,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInspectionCard({
-    required String buildingName,
-    required String address,
-    required String status,
-    required Color statusColor,
-    required String date,
-    required double progress,
-  }) {
-    return _buildGlassmorphicCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Material(
+      color: const Color(0xFF1E1E1E),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => onClicked(),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.business,
-                  color: statusColor,
-                  size: 20,
-                ),
+                child: Icon(icon, color: color),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      buildingName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      address,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Progression',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
+              const SizedBox(height: 12),
               Text(
-                date,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildAIInsights() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Insights IA',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.purple.shade800.withValues(alpha: 0.8),
+            Colors.blue.shade900.withValues(alpha: 0.9),
+          ],
         ),
-        const SizedBox(height: 16),
-        _buildGlassmorphicCard(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.purple.shade400.withValues(alpha: 0.8),
-              Colors.blue.shade500.withValues(alpha: 0.8),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.psychology,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Analyse Prédictive',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                  child: const Icon(
+                    Icons.psychology,
+                    color: Colors.white,
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Nouveau',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'L\'IA a détecté 3 bâtiments à risque élevé dans la zone de New Bell. Inspection recommandée dans les 48h.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.9),
                 ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Analyse Prédictive',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Nouveau',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Grâce à notre intelligence artificielle de dernière génération, nous identifions les zones à risque avant qu’elles ne deviennent des tragédies. À New Bell, 3 bâtiments à haut risque ont été signalés. Il est temps que la technologie serve la sécurité de tous",
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white,
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildInsightMetric('Précision', '94.2%'),
-                  ),
-                  Expanded(
-                    child: _buildInsightMetric('Confiance', '87%'),
-                  ),
-                  Expanded(
-                    child: _buildInsightMetric('Risque', 'Élevé'),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildInsightMetric('94.2%', 'Précision'),
+                _buildInsightMetric('87%', 'Confiance'),
+                _buildInsightMetric('Élevé', 'Risque'),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildInsightMetric(String label, String value) {
+  Widget _buildInsightMetric(String value, String label) {
     return Column(
       children: [
         Text(
@@ -690,7 +438,7 @@ class _DashboardState extends State<Dashboard>
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
@@ -703,6 +451,17 @@ class _DashboardState extends State<Dashboard>
   }
 
   Widget _buildActiveProjects() {
+    final random = Random();
+
+    timeago.setLocaleMessages('fr', timeago.FrMessages());
+    final activeProjects = projects.map((p) => {
+      'name': p.name,
+      'details': p.description,
+      'progress': random.nextDouble(),
+      'color': getRandomColor(),
+      'daysLeft': timeago.format(p.createdAt.toDate(), locale: 'fr')
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -711,327 +470,117 @@ class _DashboardState extends State<Dashboard>
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 16),
-        _buildProjectCard(
-          title: 'Douala - Phase 1',
-          subtitle: '50 bâtiments • 32 inspectés',
-          progress: 0.64,
-          color: Colors.green,
-          dueDate: '15 jours restants',
-        ),
-        const SizedBox(height: 12),
-        _buildProjectCard(
-          title: 'Yaoundé - Phase 1',
-          subtitle: '50 bâtiments • 28 inspectés',
-          progress: 0.56,
-          color: Colors.blue,
-          dueDate: '22 jours restants',
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: activeProjects.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final project = activeProjects[index];
+            return _buildProjectCard(
+              name: project['name'] as String,
+              details: project['details'] as String,
+              progress: project['progress'] as double,
+              color: project['color'] as Color,
+              daysLeft: project['daysLeft'] as String,
+            );
+          },
         ),
       ],
     );
   }
 
   Widget _buildProjectCard({
-    required String title,
-    required String subtitle,
+    required String name,
+    required String details,
     required double progress,
-    required MaterialColor color,
-    required String dueDate,
+    required Color color,
+    required String daysLeft,
   }) {
-    return _buildGlassmorphicCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.shade100,
-                  borderRadius: BorderRadius.circular(8),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.folder_open,
+                    color: color,
+                  ),
                 ),
-                child: Icon(
-                  Icons.folder_open,
-                  color: color.shade600,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
+                      const SizedBox(height: 4),
+                      Text(
+                        details,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                dueDate,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation<Color>(color.shade600),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '${(progress * 100).toInt()}%',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: color.shade600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Glassmorphism UI Components
-  Widget _buildGlassmorphicCard({
-    required Widget child,
-    LinearGradient? gradient,
-    VoidCallback? onTap,
-  }) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: gradient,
-                color: gradient == null ? Colors.white.withValues(alpha: 0.7) : null,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    spreadRadius: 0,
+                    ],
                   ),
-                ],
-              ),
-              child: child,
+                ),
+              ],
             ),
-          ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: Colors.grey.shade800,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${(progress * 100).toInt()}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              daysLeft,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.start,
+            ),
+          ],
         ),
-      ),
-    );
-  }
-
-  // Dialog methods
-  void _showNewInspectionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildGlassmorphicDialog(
-        title: 'Nouvelle Inspection',
-        content: 'Démarrer une nouvelle inspection de bâtiment avec l\'IA et les drones.',
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSuccessSnackBar('Inspection démarrée avec succès !');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade600,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Démarrer'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDroneMissionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildGlassmorphicDialog(
-        title: 'Mission Drone',
-        content: 'Lancer une mission automatique de surveillance par drone.',
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSuccessSnackBar('Mission drone lancée !');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Lancer'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAIReportDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildGlassmorphicDialog(
-        title: 'Rapport IA',
-        content: 'Générer un rapport d\'analyse prédictive basé sur l\'intelligence artificielle.',
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSuccessSnackBar('Rapport IA en cours de génération...');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple.shade600,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Générer'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSensorsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildGlassmorphicDialog(
-        title: 'Capteurs IoT',
-        content: 'Accéder aux données en temps réel des capteurs IoT installés.',
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSuccessSnackBar('Données capteurs actualisées !');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange.shade600,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Actualiser'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGlassmorphicDialog({
-    required String title,
-    required String content,
-    required List<Widget> actions,
-  }) {
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: Dialog(
-        backgroundColor: Colors.transparent,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    content,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: actions,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(10),
       ),
     );
   }

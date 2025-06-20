@@ -12,8 +12,9 @@ import 'package:internship/widgets/header.dart';
 // AppScaffold: A standard component with a full-screen sidebar and bottom navigation
 class AppScaffold extends ConsumerStatefulWidget {
   final Widget? content;
+  final int? page;
 
-  const AppScaffold({super.key, this.content});
+  const AppScaffold({super.key, this.content, this.page});
 
   @override
   ConsumerState<AppScaffold> createState() => _AppScaffoldState();
@@ -40,6 +41,14 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     '/compliance',
   ];
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.page != null) {
+      _currentIndex = widget.page!;
+    }
+  }
+
   void _toggleSidebar() {
     setState(() {
       _isSidebarOpen = !_isSidebarOpen;
@@ -49,7 +58,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
   void _onTabChanged(int index) {
     setState(() {
       _currentIndex = index;
-      if (widget.content != null) {
+      if (widget.content != null || widget.page != null) {
         switchedAfterContent = true;
       }
     });
@@ -70,7 +79,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                 appName: 'Batiment Intelligent',
                 onMenuPressed: _toggleSidebar
               ),
-              body: SafeArea(child: widget.content != null && !switchedAfterContent ? widget.content! : _pages[_currentIndex]),
+              body: SafeArea(child: widget.content != null && !switchedAfterContent ? widget.content! : (widget.page != null && !switchedAfterContent ? _pages[widget.page!] : _pages[_currentIndex])),
               bottomNavigationBar: Navigation(
                 currentIndex: _currentIndex,
                 onTabChanged: _onTabChanged,
