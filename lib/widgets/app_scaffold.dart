@@ -1,10 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:internship/pages/auth.dart';
 import 'package:internship/pages/dashboard.dart';
 import 'package:internship/pages/inspections.dart';
 import 'package:internship/pages/poilicies.dart';
 import 'package:internship/pages/reports.dart';
+import 'package:internship/services/auth_service.dart';
 import 'package:internship/widgets/navigation.dart';
 import 'package:internship/widgets/sidebar.dart';
 import 'package:internship/widgets/header.dart';
@@ -66,6 +68,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = ref.read(authServiceProvider);
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
@@ -136,10 +139,11 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                         },
                         onLogout: () {
                           _toggleSidebar();
+                          authService.signOut();
                           setState(() {
                             _currentIndex = 0; // Reset to initial tab
                           });
-                          Navigator.pushReplacementNamed(context, '/login');
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => AuthWrapper()));
                         },
                       ),
                     ),
