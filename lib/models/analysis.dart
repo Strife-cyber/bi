@@ -46,6 +46,9 @@ class Analysis {
       return Timestamp.fromDate(DateTime.parse(value));
     } else if (value is DateTime) {
       return Timestamp.fromDate(value);
+    } else if (value is int) {
+      // Handle Unix timestamp in milliseconds
+      return Timestamp.fromDate(DateTime.fromMillisecondsSinceEpoch(value));
     } else {
       throw FormatException('Unsupported format for timestamp: $value');
     }
@@ -59,7 +62,7 @@ class Analysis {
     return Analysis(
       files: files,
       result: map['result'],
-      createdAt: map['createdAt'] as Timestamp,
+      createdAt: parseToTimestamp(map['createdAt']),
       updatedAt: parseToTimestamp(map['updatedAt']),
     );
   }

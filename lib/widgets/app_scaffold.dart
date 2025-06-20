@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internship/pages/dashboard.dart';
 import 'package:internship/pages/inspections.dart';
 import 'package:internship/pages/poilicies.dart';
+import 'package:internship/pages/reports.dart';
 import 'package:internship/widgets/navigation.dart';
 import 'package:internship/widgets/sidebar.dart';
 import 'package:internship/widgets/header.dart';
@@ -27,7 +28,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
   static final List<Widget> _pages = [
     const Dashboard(),
     const Inspections(),
-    const Center(child: Text('Rapports', style: TextStyle(fontSize: 24))),
+    const AnalysisResultsPage(),
     const ConstructionRegulationsPage(),
   ];
 
