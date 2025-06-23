@@ -153,6 +153,7 @@
                 <div
                   class="flex w-full items-center px-3 py-2 rounded-lg cursor-pointer transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                   :class="{ 'bg-gray-100 dark:bg-gray-700': active }"
+                  @click="item.click"
                 >
                   <UIcon 
                     :name="item.icon" 
@@ -281,12 +282,12 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 
-const isOffline = ref(false);
-const isMobileMenuOpen = ref(false);
-const unreadNotifications = ref(0);
-const allUnreadNotifications = ref([]);
 const route = useRoute();
+const router = useRouter();
 const mobileMenu = ref(null);
+const unreadNotifications = ref(0);
+const isMobileMenuOpen = ref(false);
+const allUnreadNotifications = ref([]);
 
 const { user, logout } = useAuth();
 const { initialize, fetchNotifications } = useNotifications();
@@ -299,18 +300,24 @@ const navItems = [
 ];
 
 const userMenuItems = computed(() => [
-  [
+  /*[
     { label: 'My Profile', icon: 'i-heroicons-user', to: '/profile', click: closeMobileMenu },
     { label: 'Settings', icon: 'i-heroicons-cog-6-tooth', to: '/settings', click: closeMobileMenu },
   ],
   [
     { label: 'Help & Support', icon: 'i-heroicons-question-mark-circle', to: '/help', click: closeMobileMenu },
     { label: 'Documentation', icon: 'i-heroicons-book-open', to: '/docs', click: closeMobileMenu },
-  ],
+  ],*/
   [
-    { label: 'Logout', icon: 'i-heroicons-arrow-right-on-rectangle', to: '/auth/logout', click: closeMobileMenu },
+    { label: 'Logout', icon: 'i-heroicons-arrow-right-on-rectangle', click: loggingOut },
   ],
 ]);
+
+async function loggingOut(params) {
+  console.log("clicked")
+  await logout();
+  router.push('/');
+}
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
