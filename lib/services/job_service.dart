@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 
 class JobService {
   final Dio _dio = Dio();
-  final String schedulerUrl = 'http://192.168.1.134:3001'; // Update according to ip later on
+  final String schedulerUrl = 'https://bi-394i.onrender.com/'; // Update according to ip later on
 
   Future<Map<String, dynamic>> submitJob({
     required List<String> files,
