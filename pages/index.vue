@@ -25,6 +25,22 @@
               <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-500 transition-all duration-300 group-hover:w-full"></span>
             </a>
           </div>
+
+          <div class="flex items-center md:hidden dark:text-white">
+            <div v-if="user == null" class="flex items-center space-x-4">
+              <router-link to="/auth/register">
+                <UIcon name="i-heroicons-user-plus" class="h-32 w-32 hover:text-green-300 cursor-pointer"></UIcon>
+              </router-link>
+              <router-link to="/auth/login">
+                <UIcon name="i-heroicons-arrow-right-on-rectangle" class="h-32 w-32 hover:text-green-300 cursor-pointer"></UIcon>
+              </router-link>
+            </div>
+            <div v-else>
+              <router-link to="/dashboard">
+                <UIcon name="i-heroicons-squares-2x2" class="h-32 w-32 hover:text-green-300 cursor-pointer"  ></UIcon>
+              </router-link>
+            </div>
+          </div>
           
           <div v-if="user==null" class="hidden md:flex items-center space-x-4 animate-fade-in-right">
             <router-link to="/auth/register" class="btn-ghost hover-scale cursor-pointer">
@@ -381,6 +397,7 @@
 </template>
 
 <script setup>
+import { UIcon } from '#components';
 import { onMounted } from 'vue';
 
 // Current date
@@ -568,4 +585,18 @@ onMounted(() => {
 
 const { getCurrentUser } = useAuth();
 let user = computed(() => getCurrentUser());
+
+const items = computed(() => {
+  if (!user.value) {
+    return [
+      { label: 'Sign Up', to: '/signup' },
+      { label: 'Login', to: '/login' }
+    ]
+  } else {
+    return [
+      { label: 'Dashboard', to: '/dashboard' },
+      { label: 'Logout', action: logout }
+    ]
+  }
+});
 </script>

@@ -12,7 +12,8 @@ export default defineNuxtConfig({
     '@nuxt/icon',
     '@nuxt/image',
     '@nuxt/scripts',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    '@nuxtjs/cloudinary'
   ],
 
   css: ['~/assets/css/main.css'],
@@ -26,6 +27,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     firebaseSecret: '',
 
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    // The secret and key should remain private (server-only)
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+
     public: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,
       firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -35,6 +41,14 @@ export default defineNuxtConfig({
       firebaseAppId: process.env.FIREBASE_APP_ID,
       firebaseMeasurementId: process.env.FIREBASE_MEASUREMENT_ID,
       firebaseDatabaseUrl: process.env.FIREBASE_DATABASE_URL
+    },
+
+    app: {
+      head: {
+        script: [
+          { src: 'https://widget.cloudinary.com/v2.0/global/all.js', defer: true },
+        ]
+      }
     }
   },
 

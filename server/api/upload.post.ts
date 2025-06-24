@@ -1,5 +1,35 @@
+import fs from 'fs';
+import { IncomingForm } from 'formidable';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!
+});
+
+export default defineEventHandler(async (event) => {
+  const form = new IncomingForm();
+  const data: any = await new Promise((resolve, reject) => {
+    form.parse(event.node.req, (err, fields, files) => {
+      if (err) reject(err)
+      else resolve({ fields, files })
+    })
+  });
+  const file = data.files.file[0];
+  const result = await cloudinary.uploader.upload(file.filepath, {
+    resource_type: 'auto' // accepts image, video, etc.
+  })
+
+  return {
+    status: 'success',
+    fileUrl: result.secure_url,
+    message: 'File uploaded successfully',
+  };
+})
+
+/*import path from "path";
 import { promises as fs } from "fs";
-import path from "path";
 
 export default defineEventHandler(async (event) => {
   // Define allowed file types (MIME types)
@@ -10,7 +40,7 @@ export default defineEventHandler(async (event) => {
     'video/mp4',
     'video/webm',
     'video/ogg'
-  ];*/
+  ];/
 
   const formData = await readMultipartFormData(event);
 
@@ -31,7 +61,7 @@ export default defineEventHandler(async (event) => {
       statusCode: 415, // Unsupported Media Type
       statusMessage: `Unsupported file type. Please upload one of: ${allowedMimeTypes.join(', ')}`,
     });
-  }*/
+  }/
 
   const uploadDir = path.join(process.cwd(), 'public/uploads');
 
@@ -53,4 +83,4 @@ export default defineEventHandler(async (event) => {
     fileUrl,
     message: 'File uploaded successfully',
   };
-});
+});*/
