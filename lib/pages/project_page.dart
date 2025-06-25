@@ -1,9 +1,7 @@
-import 'dart:io';
-
-import 'package:internship/pages/media_upload.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:internship/models/project.dart';
+import 'package:internship/pages/media_upload.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internship/services/project_service.dart';
 
@@ -449,9 +447,7 @@ class _ProjectDetailsPageState extends ConsumerState<ProjectDetailsPage> with Si
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(8),
                                         image: DecorationImage(
-                                          image: analysis.files[index].contains('uploads')
-                                                  ? NetworkImage('https://th.bing.com/th/id/OIP.fLz_nyWcsH8YBnUzKD8eCAHaFl?rs=1&pid=ImgDetMain') // Put your placeholder URL here
-                                                  : FileImage(File(analysis.files[index])) as ImageProvider,
+                                          image: NetworkImage(analysis.files[index]), // Put your placeholder URL here
                                           fit: BoxFit.cover,
                                         ),
                                       ),

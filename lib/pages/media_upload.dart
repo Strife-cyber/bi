@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:internship/services/auth_service.dart';
 import 'package:internship/services/job_service.dart';
 import 'package:internship/services/project_service.dart';
-import 'package:path/path.dart'as path ;
 import 'package:image_picker/image_picker.dart';
 import 'package:internship/models/analysis.dart';
 import 'package:internship/services/file_service.dart';
@@ -309,7 +308,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
     if (user != null) {
       for(var file in _mediaFiles) {
         try {
-          final savedPath = await fileService.saveFile(file.file, path.basename(file.file.path));
+          final savedPath = await fileService.uploadFileToCloudinary(file.file);
           debugPrint('File saved at: $savedPath');
           filePaths.add(savedPath);
         } catch (e) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:internship/pages/auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:internship/firebase_options.dart';
@@ -10,8 +11,9 @@ import 'package:internship/services/sembast_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await dotenv.load();
   await SembastService().init();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const ProviderScope(child: BatimentIntelligentApp()));
 }

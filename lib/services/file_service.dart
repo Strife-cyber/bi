@@ -1,104 +1,54 @@
+import 'dart:convert';
 import 'dart:io';
-
+import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class FileService {
-  /// Requests storage permission for Android; iOS doesn't require it for app directories.
-  Future<bool> requestPermission() async {
-    if (Platform.isIOS) {
-      return true; // iOS doesn't require permissions for app directories
-    }
+  final String cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME']!;
+  final String apiKey = dotenv.env['CLOUDINARY_API_KEY']!;
+  final String apiSecret = dotenv.env['CLOUDINARY_API_SECRET']!;
 
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
-      await Permission.storage.request();
-    }
-
-    return true; // This is schemac do not do this at home
-  }
-
-  /// Returns the app's documents directory
-  Future<Directory> getAppDirectory() async {
-    return await getApplicationDocumentsDirectory();
-  }
-
-  /// Saves a file efficiently using streaming for both small and large files
-  Future<String> saveFile(File sourceFile, String fileName) async {
-    final hasPermission = await requestPermission();
-    if (!hasPermission) {
-      throw Exception('Storage permission not granted');
-    }
-
-    final dir = await getAppDirectory();
-    if (!await dir.exists()) await dir.create(recursive: true);
-
-    // Generate unique filename to prevent overwrites
-    final sanitizedFileName = _generateUniqueFileName(fileName);
-    final destPath = path.join(dir.path, sanitizedFileName);
-    final destFile = File(destPath);
-
+  /// Uploads file to Cloudinary and returns the secure URL
+  Future<String> uploadFileToCloudinary(File file) async {
     try {
-      // Efficient file copy using streams
-      await _copyFileWithStream(sourceFile, destFile);
-      return destPath;
+      final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+      final fileBytes = await file.readAsBytes();
+
+      final timestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
+
+      // Generate signature manually
+      final signatureData = 'timestamp=$timestamp$apiSecret';
+      final signature = sha1.convert(utf8.encode(signatureData)).toString();
+
+      final uri = Uri.parse(
+          'https://api.cloudinary.com/v1_1/$cloudName/auto/upload');
+
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['api_key'] = apiKey
+        ..fields['timestamp'] = timestamp
+        ..fields['signature'] = signature
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          fileBytes,
+          filename: path.basename(file.path),
+          contentType: MediaType.parse(mimeType),
+        ));
+
+      final response = await request.send();
+      final body = await http.Response.fromStream(response);
+
+      if (body.statusCode == 200) {
+        final data = json.decode(body.body);
+        return data['secure_url'];
+      } else {
+        throw Exception('Cloudinary error: ${body.body}');
+      }
     } catch (e) {
-      throw Exception('Failed to save file: $e');
-    }
-  }
-
-  /// Efficient file copy using streams
-  Future<void> _copyFileWithStream(File source, File destination) async {
-    final input = source.openRead();
-    final output = destination.openWrite();
-
-    try {
-      await input.pipe(output);
-    } catch (e) {
-      await output.close();
-      await destination.delete();
-      rethrow;
-    } finally {
-      await output.close();
-    }
-  }
-
-  /// Generates unique filename with timestamp
-  String _generateUniqueFileName(String originalName) {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final extension = path.extension(originalName);
-    final baseName = path.basenameWithoutExtension(originalName);
-    
-    // Sanitize filename
-    final sanitizedBase = baseName
-        .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
-        .replaceAll('..', '_')
-        .trim();
-    
-    final name = sanitizedBase.isEmpty 
-        ? 'file_$timestamp' 
-        : '${sanitizedBase}_$timestamp';
-    
-    return '$name$extension';
-  }
-
-  /// Deletes a file
-  Future<void> deleteFile(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (await file.exists()) await file.delete();
-    } catch (e) {
-      throw Exception('Failed to delete file: $e');
-    }
-  }
-
-  /// Checks if file exists
-  Future<bool> fileExists(String filePath) async {
-    try {
-      return await File(filePath).exists();
-    } catch (e) {
-      throw Exception('Failed to check file existence: $e');
+      throw Exception('Upload error: $e');
     }
   }
 }
