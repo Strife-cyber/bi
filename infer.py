@@ -1,43 +1,32 @@
 import os
 import cv2
-import tf_keras
-import numpy as np
 import tempfile
+from ultralytics import YOLO
 from collections import Counter
 
-# Load Keras model
-model = tf_keras.models.load_model("model/Model_Last_Prediction.h5")
+# Load YOLO model
+model = YOLO("model/best.pt")  # path to your .pt model
 
 CONF_THRESHOLD = 0.6
-INPUT_SIZE = (200, 200)  # Adjust to what your model expects
-
-
-def preprocess_image(img):
-    """
-    Resize and normalize image for the model.
-    """
-    image = cv2.resize(img, INPUT_SIZE)
-    image = image.astype(np.float32) / 255.0
-    return np.expand_dims(image, axis=0)  # Add batch dimension
 
 
 def analyze_image(img_path):
     """
-    Analyze a single image using the .h5 model.
+    Analyze a single image using Ultralytics YOLO model.
     """
-    img = cv2.imread(img_path)
-    if img is None:
-        raise ValueError(f"Unable to load image: {img_path}")
+    results = model(img_path)[0]  # run inference and get first result
 
-    input_tensor = preprocess_image(img)
-    preds = model.predict(input_tensor)[0]  # Get first (and only) prediction
+    class_ids = [
+        int(box.cls)
+        for box in results.boxes
+        if float(box.conf) >= CONF_THRESHOLD
+    ]
 
-    valid_indices = np.where(preds >= CONF_THRESHOLD)[0]
-    class_counts = {int(i): 1 for i in valid_indices}
+    class_counts = dict(Counter(class_ids))
 
     return {
         "type": "image",
-        "valid_detections": len(valid_indices),
+        "valid_detections": len(class_ids),
         "confidence_threshold": CONF_THRESHOLD,
         "class_distribution": class_counts,
     }
@@ -45,7 +34,7 @@ def analyze_image(img_path):
 
 def analyze_video(vid_path, frame_interval=5):
     """
-    Analyze a video by extracting and processing frames using the .h5 model.
+    Analyze a video by extracting frames and processing them using YOLO.
     """
     cap = cv2.VideoCapture(vid_path)
     frame_count = 0
@@ -57,12 +46,11 @@ def analyze_video(vid_path, frame_interval=5):
             break
 
         if frame_count % frame_interval == 0:
-            input_tensor = preprocess_image(frame)
-            preds = model.predict(input_tensor)[0]
+            results = model(frame, verbose=False)[0]
 
-            for i, conf in enumerate(preds):
-                if conf >= CONF_THRESHOLD:
-                    valid_classes.append(i)
+            for box in results.boxes:
+                if float(box.conf) >= CONF_THRESHOLD:
+                    valid_classes.append(int(box.cls))
 
         frame_count += 1
 
@@ -85,24 +73,20 @@ def is_video(filename: str):
 
 async def run_analysis(upload_file):
     """
-    Handle UploadFile object by saving to temp file
+    Handle UploadFile object by saving to temp file and analyzing.
     """
-    # Create a temporary file
     suffix = os.path.splitext(upload_file.filename)[1]
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
-        # Save uploaded content to temp file
         contents = await upload_file.read()
         temp_file.write(contents)
         temp_path = temp_file.name
 
     try:
-        # Analyze based on file type
         if is_video(upload_file.filename):
             result = analyze_video(temp_path)
         else:
             result = analyze_image(temp_path)
     finally:
-        # Clean up temp file
         os.unlink(temp_path)
 
     return result
