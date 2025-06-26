@@ -7,7 +7,7 @@ from collections import Counter
 # Load YOLO model
 model = YOLO("model/best.pt")  # path to your .pt model
 
-CONF_THRESHOLD = 0.6
+CONF_THRESHOLD = 0.4
 
 
 def analyze_image(img_path):
@@ -90,3 +90,10 @@ async def run_analysis(upload_file):
         os.unlink(temp_path)
 
     return result
+
+if __name__ == "__main__":
+    for i in range(3, 10):
+        print(f"Analysing image {i}")
+        print(analyze_image(rf"C:\Users\dunam\Downloads\cracked walls\c{i}.jpg"))
+        print("\n")
+
