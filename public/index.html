@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Management Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-tasks"></i> Job Management Dashboard</h1>
+            <div class="header-actions">
+                <button id="addJobBtn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add New Job
+                </button>
+                <button id="refreshBtn" class="btn btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <div class="filters">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search jobs...">
+            </div>
+            <select name="statusFilter" title="statusFilter" id="statusFilter">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="running">Running</option>
+                <option value="done">Done</option>
+                <option value="failed">Failed</option>
+            </select>
+            <select id="typeFilter" title="typeFilter">
+                <option value="">All Types</option>
+                <option value="Analysis">Analysis</option>
+                <option value="Processing">Processing</option>
+                <option value="Export">Export</option>
+            </select>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-icon pending">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="pendingCount">0</h3>
+                    <p>Pending</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon running">
+                    <i class="fas fa-spinner"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="runningCount">0</h3>
+                    <p>Running</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon done">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="doneCount">0</h3>
+                    <p>Completed</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon failed">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="failedCount">0</h3>
+                    <p>Failed</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="jobs-grid" id="jobsGrid">
+            <!-- Jobs will be populated here -->
+        </div>
+
+        <div id="loadingSpinner" class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading jobs...</p>
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-inbox"></i>
+            <h3>No jobs found</h3>
+            <p>Create your first job to get started</p>
+        </div>
+    </div>
+
+    <!-- Job Modal -->
+    <div id="jobModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Job</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="jobForm">
+                <div class="form-group">
+                    <label for="jobType">Job Type</label>
+                    <select id="jobType" required>
+                        <option value="Analysis">Analysis</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Export">Export</option>
+                        <option value="Import">Import</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="jobStatus">Status</label>
+                    <select id="jobStatus" required>
+                        <option value="pending">Pending</option>
+                        <option value="running">Running</option>
+                        <option value="done">Done</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="jobFiles">Files (JSON Array)</label>
+                    <textarea id="jobFiles" placeholder='["https://example.com/file1.jpg", "https://example.com/file2.mp4"]'></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="jobResult">Result (JSON)</label>
+                    <textarea id="jobResult" placeholder='{}'></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="jobUserId">User ID</label>
+                    <input type="text" id="jobUserId" placeholder="Enter user ID">
+                </div>
+                <div class="form-group">
+                    <label for="jobProjectId">Project ID</label>
+                    <input type="text" id="jobProjectId" placeholder="Enter project ID">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">Save Job</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Confirm Delete</h2>
+                <span class="close">&times;</span>
+            </div>
+            <p>Are you sure you want to delete this job? This action cannot be undone.</p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

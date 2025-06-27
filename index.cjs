@@ -4,6 +4,7 @@ const multer = require('multer');
 const fs = require('fs/promises');
 const express = require('express');
 const { v4: uuid } = require('uuid');
+const jobsRoutes = require('./routes.cjs');
 const lockfile = require('proper-lockfile');
 const runWorker = require('./analysis.worker.cjs');
 const sendNotification = require('./notification.cjs'); // Adjust path if needed
@@ -60,6 +61,8 @@ function getLocalIP() {
   await fs.mkdir(uploadDir, { recursive: true });
 
   app.use(express.json());
+  app.use(express.static("public"));
+  app.use('/api/jobs', jobsRoutes);
 
   app.post('/enqueue-job', upload.array('files'), async (req, res) => {
     try {
@@ -104,7 +107,8 @@ function getLocalIP() {
       await sendNotification({
         userId,
         title: 'Analyse en cours',
-        message: 'Votre demande d\'analyse a bien été reçue...'
+        message: 'Votre demande d\'analyse a bien été reçue...',
+        FIREBASE_DB_URL: process.env.FIREBASE_DATABASE_URL
       });
 
       res.json({ success: true, jobId: job.id });
