@@ -10,7 +10,7 @@ const runWorker = require('./analysis.worker.cjs');
 const sendNotification = require('./notification.cjs'); // Adjust path if needed
 
 const app = express();
-const PORT = process.env.PORT || 10000; // 3001
+//const PORT = process.env.PORT || 10000; // 3001
 const uploadDir = path.resolve('uploads');
 const jobFilePath = path.resolve('jobs.json');
 
@@ -124,8 +124,9 @@ function getLocalIP() {
 
   const ip = getLocalIP();
 
-  app.listen(PORT, ip, () => {
+  /*app.listen(PORT, ip, () => {
     console.log(`🚀 Server running on http://${ip}:${PORT}`);
-  });
+  });*/
+  app.listen(() => 'Server is running');
   await runWorker();
 })();
