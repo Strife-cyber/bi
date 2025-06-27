@@ -408,7 +408,7 @@ class _MediaUploadPageState extends ConsumerState<MediaUploadPage>
             fontWeight: FontWeight.bold,
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: cardDark,
           elevation: 2,
           shape: RoundedRectangleBorder(

@@ -2,9 +2,11 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:internship/services/auth_service.dart';
 import 'package:internship/widgets/app_scaffold.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SignupPage extends StatefulWidget {
+class SignupPage extends ConsumerStatefulWidget {
   final VoidCallback onSwitchToLogin;
   
   const SignupPage({
@@ -13,10 +15,10 @@ class SignupPage extends StatefulWidget {
   });
 
   @override
-  State<SignupPage> createState() => _SignupPageState();
+  ConsumerState<SignupPage> createState() => _SignupPageState();
 }
 
-class _SignupPageState extends State<SignupPage>
+class _SignupPageState extends ConsumerState<SignupPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -70,6 +72,8 @@ class _SignupPageState extends State<SignupPage>
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = ref.read(authServiceProvider);
+
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -102,9 +106,9 @@ class _SignupPageState extends State<SignupPage>
                     const SizedBox(height: 20),
                     _buildHeader(),
                     const SizedBox(height: 32),
-                    _buildSignupForm(),
+                    _buildSignupForm(authProvider),
                     const SizedBox(height: 24),
-                    _buildSocialLogin(),
+                    _buildSocialLogin(authProvider),
                     const SizedBox(height: 32),
                     _buildLoginPrompt(),
                   ],
@@ -151,7 +155,7 @@ class _SignupPageState extends State<SignupPage>
     );
   }
 
-  Widget _buildSignupForm() {
+  Widget _buildSignupForm(AuthService authService) {
     return _buildGlassmorphicCard(
       child: Form(
         key: _formKey,
@@ -253,7 +257,7 @@ class _SignupPageState extends State<SignupPage>
             ),
             const SizedBox(height: 24),
             _buildGlassmorphicButton(
-              onPressed: (_isLoading || !_acceptTerms) ? null : _handleSignup,
+              onPressed: (_isLoading || !_acceptTerms) ? null : () => _handleSignup(authService),
               child: _isLoading
                   ? const SizedBox(
                       height: 20,
@@ -278,7 +282,7 @@ class _SignupPageState extends State<SignupPage>
     );
   }
 
-  Widget _buildSocialLogin() {
+  Widget _buildSocialLogin(AuthService authService) {
     return Column(
       children: [
         Row(
@@ -304,7 +308,7 @@ class _SignupPageState extends State<SignupPage>
               child: _buildSocialButton(
                 icon: Icons.g_mobiledata,
                 label: 'Google',
-                onPressed: _handleGoogleSignup,
+                onPressed: () => _handleGoogleSignup(authService),
               ),
             ),
             const SizedBox(width: 16),
@@ -312,7 +316,7 @@ class _SignupPageState extends State<SignupPage>
               child: _buildSocialButton(
                 icon: Icons.code,
                 label: 'GitHub',
-                onPressed: _handleGithubSignup,
+                onPressed: () => _handleGithubSignup(authService),
               ),
             ),
           ],
@@ -373,12 +377,13 @@ class _SignupPageState extends State<SignupPage>
     );
   }
 
-  void _handleSignup() async {
+  void _handleSignup(AuthService authService) async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       
       // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+      await authService.signUpWithEmail(_emailController.text, _passwordController.text);
+      await authService.signInWithEmail(_emailController.text, _passwordController.text);
       
       setState(() => _isLoading = false);
       
@@ -400,36 +405,40 @@ class _SignupPageState extends State<SignupPage>
     }
   }
 
-  void _handleGoogleSignup() async {
+  void _handleGoogleSignup(AuthService authService) async {
     // Implement Google Sign-Up
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Inscription Google en cours...'),
-        backgroundColor: Colors.blue.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(10),
-      ),
-    );
+    await authService.signInWithGoogle();
 
     if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Inscription Google en cours...'),
+          backgroundColor: Colors.blue.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(10),
+        ),
+      );
+
       Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold()));
     }
   }
 
-  void _handleGithubSignup() async {
+  void _handleGithubSignup(AuthService authService) async {
     // Implement GitHub Sign-Up
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Inscription GitHub en cours...'),
-        backgroundColor: Colors.grey.shade800,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(10),
-      ),
-    );
+    await authService.signInWithGitHub();
 
     if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Inscription GitHub en cours...'),
+          backgroundColor: Colors.grey.shade800,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(10),
+        ),
+      );
+
       Navigator.push(context, MaterialPageRoute(builder: (context) => AppScaffold()));
     }
   }

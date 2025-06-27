@@ -1,3 +1,4 @@
+import 'package:internship/widgets/media_preview.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -533,31 +534,7 @@ class _AnalysisResultsPageState extends ConsumerState<AnalysisResultsPage> {
   }
 
   Widget _buildFilePreview(String fileUrl) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800] : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          fileUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return const Center(
-              child: Icon(Icons.broken_image),
-            );
-          },
-        ),
-      ),
-    );
+    return MediaPreview(url: fileUrl);
   }
 
   Widget _buildEmptyState(Color textColor, Color secondaryTextColor) {

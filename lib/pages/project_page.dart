@@ -1,7 +1,9 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:internship/models/project.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import 'package:internship/pages/media_upload.dart';
+import 'package:internship/widgets/media_preview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internship/services/project_service.dart';
 
@@ -318,6 +320,8 @@ class _ProjectDetailsPageState extends ConsumerState<ProjectDetailsPage> with Si
   }
 
   Widget _buildOverviewTab(Project project, Color cardColor, Color textColor, Color subtitleColor) {
+    timeago.setLocaleMessages('fr', timeago.FrMessages());
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -335,40 +339,40 @@ class _ProjectDetailsPageState extends ConsumerState<ProjectDetailsPage> with Si
                 icon: Icons.document_scanner,
                 label: 'Analyses',
                 value: project.analysis.length.toString(),
-                bgColor: const Color(0xFFE8F5E9),
+                bgColor: const Color(0xFFC8E6C9),
                 iconColor: const Color(0xFF00C853),
                 textColor: textColor,
-                subtitleColor: subtitleColor,
+                subtitleColor: Colors.black,
               ),
               _buildStatCard(
                 icon: Icons.photo,
                 label: 'Fichiers',
                 value: project.analysis.fold(0, (sum, a) => sum + a.files.length).toString(),
-                bgColor: const Color(0xFFE3F2FD),
+                bgColor: const Color(0xFF90CAF9),
                 iconColor: const Color(0xFF2196F3),
                 textColor: textColor,
-                subtitleColor: subtitleColor,
+                subtitleColor: Colors.black,
               ),
               _buildStatCard(
                 icon: Icons.warning,
                 label: 'Défauts détectés',
                 value: '0',
-                bgColor: const Color(0xFFFFF8E1),
+                bgColor: const Color(0xFFFFF59D),
                 iconColor: const Color(0xFFFFC107),
                 textColor: textColor,
-                subtitleColor: subtitleColor,
+                subtitleColor: Colors.black,
               ),
               _buildStatCard(
                 icon: Icons.calendar_today,
                 label: 'Dernière analyse',
                 value: project.analysis.isNotEmpty 
                 //todo add relative date
-                    ? ''
+                    ? timeago.format(project.analysis.last.createdAt.toDate())
                     : '-',
-                bgColor: const Color(0xFFF3E5F5),
+                bgColor: const Color(0xFFCE93D8),
                 iconColor: const Color(0xFF9C27B0),
                 textColor: textColor,
-                subtitleColor: subtitleColor,
+                subtitleColor: Colors.black,
               ),
             ],
           ),
@@ -440,18 +444,7 @@ class _ProjectDetailsPageState extends ConsumerState<ProjectDetailsPage> with Si
                                   scrollDirection: Axis.horizontal,
                                   itemCount: analysis.files.length,
                                   itemBuilder: (context, index) {
-                                    return Container(
-                                      width: 80,
-                                      height: 80,
-                                      margin: const EdgeInsets.only(right: 8),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        image: DecorationImage(
-                                          image: NetworkImage(analysis.files[index]), // Put your placeholder URL here
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    );
+                                    return MediaPreview(url: analysis.files[index]);
                                   },
                                 ),
                               ),
@@ -502,14 +495,17 @@ class _ProjectDetailsPageState extends ConsumerState<ProjectDetailsPage> with Si
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
+                SizedBox(
+                  width: 60,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(
                   width: 60,
