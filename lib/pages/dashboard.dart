@@ -102,12 +102,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.tealAccent.shade400,
-        child: const Icon(Icons.add, color: Colors.black),
-      ),
+      )
     );
   }
 
