@@ -23,7 +23,7 @@ async function updateAnalysisResult(userId, projectId, createdAt, resultData) {
     .get();
 
   if (snapshot.empty) {
-    console.warn(`No analysis found for createdAt = ${createdAtTimestamp}`);
+    console.warn(`No analysis found for createdAt = ${createdAtDate}`);
     return;
   }
 

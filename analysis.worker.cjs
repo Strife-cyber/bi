@@ -1,62 +1,56 @@
-const fs = require('fs')
-const path = require('path')
-const axios = require('axios')
-const crypto = require('crypto')
-const FormData = require('form-data')
-const lockfile = require('proper-lockfile')
-const sendNotification = require('./notification.cjs')
-const updateAnalysisResult = require('./firestore-utils.cjs')
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const crypto = require('crypto');
+const FormData = require('form-data');
+const lockfile = require('proper-lockfile');
+const sendNotification = require('./notification.cjs');
+const updateAnalysisResult = require('./firestore-utils.cjs');
 
-require('dotenv').config()
+require('dotenv').config();
 
-const BASE_DIR = path.resolve(__dirname)
+const jobFilePath = path.resolve(__dirname, './jobs.json');
 
-const jobFilePath = path.resolve(__dirname, './jobs.json')
-
+const MOULD_SECRET_KEY = process.env.MOULD_SECRET_KEY;
 const CRACKS_SECRET_KEY = process.env.CRACKS_SECRET_KEY;
 const FIREBASE_DB_URL = process.env.FIREBASE_DATABASE_URL;
+const MOULD_URL = process.env.MOULD_URL || "http://localhost:3003";
 const BASE_URL = process.env.CRACKS_API_URL || "http://localhost:3002";
 
 async function loadJobs() {
-  const data = fs.readFileSync(jobFilePath, 'utf-8')
-  return JSON.parse(data)
+  const data = fs.readFileSync(jobFilePath, 'utf-8');
+  return JSON.parse(data);
 }
 
 async function saveJobs(jobs) {
-  fs.writeFileSync(jobFilePath, JSON.stringify(jobs, null, 2))
+  fs.writeFileSync(jobFilePath, JSON.stringify(jobs, null, 2));
+}
+
+async function fetchFileBuffer(url) {
+  const response = await axios.get(url, { responseType: 'arraybuffer' });
+  const filename = path.basename(url.split('?')[0]); // handles URLs with query params
+  return { buffer: Buffer.from(response.data), filename };
 }
 
 async function processJob(job) {
   console.log(`🔧 Processing job ${job.id} of type ${job.type}`);
 
-  // Run all cracked(file) calls in parallel
-  const promises = job.data.files.map(file => cracked(getAbsoluteFilePath(file)))
-  const result = await Promise.all(promises)
+  const jobFiles = JSON.parse(job.data.files);
+  // const mouldPromises = jobFiles.map(url => mould(url));
+  // const mouldResults = await Promise.all(mouldPromises);
 
-  await updateAnalysisResult(job.data.userId, job.data.projectId, job.data.createdAt, result);
-  await sendNotification({
-    userId: job.data.userId,
-    title: 'Analyse terminée 🎉',
-    message: "Votre analyse est terminée avec succès. Consultez les résultats quand vous êtes prêt !",
-    FIREBASE_DB_URL: FIREBASE_DB_URL
-  });
+  console.log(jobFiles);
+  // console.log(mouldResults);
 
-  // TODO: Send result somewhere else
+  // TODO: Add result logic and reporting
   console.log(`✅ Job ${job.id} done`);
 }
 
-function getAbsoluteFilePath(file) {
-  return path.join(BASE_DIR, file.replace(/^\/+/, ''));
-}
-
-async function cracked(filePath) {
+async function mould(fileUrl) {
   try {
-    const form = new FormData()
-    const fileBuffer = fs.readFileSync(path.resolve(filePath))
-    const filename = path.basename(filePath)
+    const { buffer, filename } = await fetchFileBuffer(fileUrl);
 
-    // Get file extension for MIME type detection
-    const ext = filename.split('.').pop()?.toLowerCase() || ''
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
     const mimeTypes = {
       jpg: 'image/jpeg',
       jpeg: 'image/jpeg',
@@ -65,85 +59,74 @@ async function cracked(filePath) {
       mp4: 'video/mp4',
       mov: 'video/quicktime',
       avi: 'video/x-msvideo'
-    }
+    };
 
-    form.append("file", fileBuffer, {
+    const form = new FormData();
+    form.append("file", buffer, {
       filename,
       contentType: mimeTypes[ext] || 'application/octet-stream'
-    })
-
-    // Get form payload buffer (Node.js FormData does not have getBuffer by default)
-    // Use form.getLengthSync() for content-length header if needed
-    // but axios can handle this if you pass the form directly.
+    });
 
     const formBuffer = form.getBuffer();
-    const timestamp = Math.floor(Date.now() / 1000).toString()
-    const method = "POST"
-    const endpoint = "/inference/"
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const method = "POST";
+    const endpoint = "/inference/";
 
-    // Construct message using the full form payload - note: you might want to re-check if concatenating form buffer like this matches your API’s signature expectations
-    // Often, API signatures are done on just method+endpoint+timestamp or on the raw body bytes.
-    const message = method + endpoint + timestamp
-    const messageBuffer = Buffer.concat([
-      Buffer.from(message, 'utf-8'),
-      formBuffer
-      // form buffer here? This may be tricky — form-data doesn't easily provide a raw buffer before sending.
-    ])
+    const message = method + endpoint + timestamp;
+    const messageBuffer = Buffer.concat([Buffer.from(message, 'utf-8'), formBuffer]);
 
-    // For now, let's assume the signature is only method+endpoint+timestamp
     const signature = crypto
-      .createHmac('sha256', CRACKS_SECRET_KEY)
+      .createHmac('sha256', MOULD_SECRET_KEY)
       .update(messageBuffer)
-      .digest('hex')
+      .digest('hex');
 
-    // Send the request
-    const response = await axios.post(`${BASE_URL}${endpoint}`, form, {
+    const response = await axios.post(`${MOULD_URL}${endpoint}`, form, {
       headers: {
         ...form.getHeaders(),
         'x-timestamp': timestamp,
         'x-signature': signature,
       }
-    })
+    });
 
-    return response.data
+    return response.data;
   } catch (error) {
-    console.error(error)
+    console.error(`❌ Mould inference error for file ${fileUrl}:`, error.message);
   }
 }
 
 async function runWorker() {
   while (true) {
-    let release
+    let release;
     try {
-      release = await lockfile.lock(jobFilePath)
+      release = await lockfile.lock(jobFilePath);
 
-      const jobs = await loadJobs()
-      const job = jobs.find(j => j.status === 'pending')
+      const jobs = await loadJobs();
+      const job = jobs.find(j => j.status === 'pending');
 
       if (job) {
-        job.status = 'processing'
-        await saveJobs(jobs)
+        job.status = 'processing';
+        await saveJobs(jobs);
 
         try {
-          await processJob(job)
-          job.status = 'done'
-          job.completedAt = new Date().toISOString()
+          await processJob(job);
+          job.status = 'done';
+          job.completedAt = new Date().toISOString();
         } catch (e) {
-          job.status = 'failed'
-          job.error = e.message
-          console.error('Job processing error:', e)
+          job.status = 'failed';
+          job.error = e.message;
+          console.error('Job processing error:', e);
         }
 
-        await saveJobs(jobs)
+        await saveJobs(jobs);
       }
     } catch (e) {
-      console.error('Worker error:', e.message)
+      console.error('Worker error:', e.message);
     } finally {
-      if (release) await release()
+      if (release) await release();
     }
 
-    await new Promise(res => setTimeout(res, 2000)) // Wait before next check
+    await new Promise(res => setTimeout(res, 2000));
   }
 }
 
-module.exports = runWorker
+module.exports = runWorker;

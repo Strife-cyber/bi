@@ -1,3 +1,4 @@
+const os = require('os');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs/promises');
@@ -24,6 +25,35 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+function getLocalIP() {
+  const interfaces = os.networkInterfaces()
+
+  // Prioritize known Wi-Fi names
+  const preferredNames = ['Wi-Fi', 'Wi-Fi 2', 'WLAN', 'WiFi']
+
+  for (const name of preferredNames) {
+    const iface = interfaces[name]
+    if (!iface) continue
+
+    for (const config of iface) {
+      if (config.family === 'IPv4' && !config.internal) {
+        return config.address
+      }
+    }
+  }
+
+  // Fallback to any 192.168.*.* interface
+  for (const name in interfaces) {
+    for (const config of interfaces[name] || []) {
+      if (config.family === 'IPv4' && !config.internal && config.address.startsWith('192.168.')) {
+        return config.address
+      }
+    }
+  }
+
+  return 'localhost'
+}
+
 // Wrap async init inside an IIFE to allow await usage
 (async () => {
   // Ensure upload directory exists
@@ -33,17 +63,17 @@ const upload = multer({ storage });
 
   app.post('/enqueue-job', upload.array('files'), async (req, res) => {
     try {
-      const { type, userId, projectId } = req.body;
-      const files = req.files || [];
+      const { type, userId, projectId, analysis } = req.body;
+      // const files = req.files || [];
 
-      const filePaths = files.map(f => `/uploads/${f.filename}`);
+      // const filePaths = files.map(f => `/uploads/${f.filename}`);
       const now = new Date().toISOString();
 
       const job = {
         id: uuid(),
         type,
         data: {
-          files: filePaths,
+          files: analysis,
           result: {},
           createdAt: now,
           updatedAt: now,
@@ -88,8 +118,10 @@ const upload = multer({ storage });
     }
   });
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  const ip = getLocalIP();
+
+  app.listen(PORT, ip, () => {
+    console.log(`🚀 Server running on http://${ip}:${PORT}`);
   });
   await runWorker();
 })();
