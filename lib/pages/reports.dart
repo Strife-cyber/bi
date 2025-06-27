@@ -68,7 +68,7 @@ class _AnalysisResultsPageState extends ConsumerState<AnalysisResultsPage> {
   String _getClassName(String classId) {
     const classNames = {
       '0': 'Fissure',
-      '1': 'Corrosion',
+      '1': 'Moissisure',
       '2': 'Déformation',
       '3': 'Dommage',
     };
@@ -640,28 +640,4 @@ class ProjectSearchDelegate extends SearchDelegate<String> {
       },
     );
   }
-}
-
-class AnalysisResult {
-  final String severity;
-  final List<Detection> detections;
-
-  AnalysisResult({
-    required this.severity,
-    required this.detections,
-  });
-}
-
-class Detection {
-  final String type;
-  final int validDetections;
-  final int framesAnalyzed;
-  final Map<String, int> classDistribution;
-
-  Detection({
-    required this.type,
-    required this.validDetections,
-    required this.framesAnalyzed,
-    required this.classDistribution,
-  });
 }
