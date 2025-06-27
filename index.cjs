@@ -10,7 +10,7 @@ const runWorker = require('./analysis.worker.cjs');
 const sendNotification = require('./notification.cjs'); // Adjust path if needed
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000; // 3001
 const uploadDir = path.resolve('uploads');
 const jobFilePath = path.resolve('jobs.json');
 
