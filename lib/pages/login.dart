@@ -335,7 +335,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       
-      await authService.signUpWithEmail(_emailController.text, _passwordController.text);
       await authService.signInWithEmail(_emailController.text, _passwordController.text);
       
       setState(() => _isLoading = false);
