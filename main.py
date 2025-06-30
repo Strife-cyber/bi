@@ -18,6 +18,11 @@ async def cache_body_middleware(request: Request, call_next):
     response = await call_next(request)
     return response
 
+@app.get("/")
+async def get_signal():
+    return {
+        "message": "hello world"
+    }
 
 @app.get("/metrics/")
 async def get_metrics():
