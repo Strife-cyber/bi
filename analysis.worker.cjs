@@ -14,8 +14,8 @@ const jobFilePath = path.resolve(__dirname, './jobs.json');
 const MOULD_SECRET_KEY = process.env.MOULD_SECRET_KEY;
 const CRACKS_SECRET_KEY = process.env.CRACKS_SECRET_KEY;
 const FIREBASE_DB_URL = process.env.FIREBASE_DATABASE_URL;
-const MOULD_URL = process.env.MOULD_URL || "http://localhost:3003";
-const BASE_URL = process.env.CRACKS_API_URL || "http://localhost:3002";
+const MOULD_URL = "https://bi-jhmv.onrender.com"; // process.env.MOULD_URL || 
+const BASE_URL = "https://bi-q7hs.onrender.com"; //process.env.CRACKS_API_URL ||
 
 async function loadJobs() {
   const data = fs.readFileSync(jobFilePath, 'utf-8');
