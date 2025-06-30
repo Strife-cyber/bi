@@ -7,9 +7,7 @@ WORKDIR /app
 # Copy requirements file and install dependencies
 COPY requirements.txt .
 
-COPY deps/ ./deps/
-
-RUN pip install --find-links=./deps/ -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy the rest of the project files
 COPY . .
