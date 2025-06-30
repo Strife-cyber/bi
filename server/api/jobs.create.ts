@@ -10,6 +10,9 @@ const SHEDULER_URL =  'http://192.168.1.30:3001'; // process.env.SHEDULER_URL ||
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event);
+    console.log(SHEDULER_URL);
+    console.log('Received job creation request:', body);
+    console.log('Scheduler URL:', SHEDULER_URL);
 
     // const filePaths = body.data.files || [];
     const form = new FormData();
