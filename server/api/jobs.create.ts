@@ -4,7 +4,7 @@
 import FormData from 'form-data';
 import axios from 'axios';
 
-const SHEDULER_URL = 'https://bi-g52g.onrender.com'; // process.env.SHEDULER_URL || 
+const SHEDULER_URL =  process.env.SHEDULER_URL || 'http://192.168.1.30:3001';
 //const UPLOAD_BASE_PATH = path.join(process.cwd(), 'public'); // resolves to your root/public
 
 export default defineEventHandler(async (event) => {
