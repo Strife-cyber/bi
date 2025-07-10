@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 class JobService {
   final Dio _dio = Dio();
-  final String schedulerUrl = 'http://192.168.1.178:3001'; // Update according to ip later on
+  final String schedulerUrl = 'http://laptop-mdpv1f76.taild0a5b5.ts.net:3001'; // Update according to ip later on
 
   Future<Map<String, dynamic>> submitJob({
     required List<String> files,
